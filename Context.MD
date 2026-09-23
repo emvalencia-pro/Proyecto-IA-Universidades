@@ -160,11 +160,34 @@ Esta sección fija los nombres exactos que comparten los módulos. **Se define a
 - **Sin tildes ni ñ en URIs** (evitar problemas con serializadores).
 - El nombre humano con tildes va en `foaf:name` o `rdfs:label`, no en la URI.
 
-### 4.2 Tabla de correspondencia: predicado RDF → Fact de Experta
+### 4.2 Correspondencia RDF → Fact de Experta
+
+La traducción usa **dos mapas de vocabulario** (ninguno contiene valores de un caso concreto): uno para los tipos (`rdf:type`) y otro para las propiedades.
+
+**(a) Tipos → `CLASS_TO_FACT`: una clase de `Fact` por cada clase de la ontología.**
+Cada triple `individuo rdf:type Clase` se traduce a un hecho simple `Clase(id=individuo)`.
+
+| Clase RDF (objeto de `rdf:type`) | Fact de Experta        | Slot        |
+|----------------------------------|------------------------|-------------|
+| `ex:Oferta`                      | `Oferta`               | `id: str`   |
+| `ex:OfertaInternacional`         | `OfertaInternacional`  | `id: str`   |
+| `ex:OfertaNacional`              | `OfertaNacional`       | `id: str`   |
+| `ex:Universidad`                 | `Universidad`          | `id: str`   |
+| `ex:UniversidadDestino`          | `UniversidadDestino`   | `id: str`   |
+| `ex:Pais`                        | `Pais`                 | `id: str`   |
+| `ex:AreaConocimiento`            | `AreaConocimiento`     | `id: str`   |
+| `ex:Ingenieria`                  | `Ingenieria`           | `id: str`   |
+| `ex:NivelEstudios`               | `NivelEstudios`        | `id: str`   |
+| `ex:Convenio`                    | `Convenio`             | `id: str`   |
+| `ex:Beca`                        | `Beca`                 | `id: str`   |
+| `ex:Estudiante`                  | `Estudiante`           | `id: str`   |
+
+> Ejemplo: `ex:oferta_montpellier_2027_1 rdf:type ex:OfertaInternacional` → `OfertaInternacional(id="oferta_montpellier_2027_1")`. Como el razonador infiere además `... rdf:type ex:Oferta`, también se genera `Oferta(id="oferta_montpellier_2027_1")`. Las reglas casan directo, p. ej. `OfertaInternacional(MATCH.o)`, sin comparar strings.
+
+**(b) Propiedades → `PREDICATE_TO_FACT`: una clase de `Fact` por predicado.**
 
 | Predicado RDF          | Rango RDF               | Fact de Experta       | Slots                              |
 |------------------------|-------------------------|-----------------------|------------------------------------|
-| `rdf:type`             | clase                   | `EsInstanciaDe`       | `individuo: str`, `clase: str`     |
 | `ex:tieneCupos`        | `xsd:integer`           | `TieneCupos`          | `oferta: str`, `n: int`            |
 | `ex:fechaCierre`       | `xsd:date`              | `FechaCierre`         | `oferta: str`, `fecha: date`       |
 | `ex:ofrecidaPor`       | `ex:Universidad`        | `OfrecidaPor`         | `oferta: str`, `uni: str`          |
@@ -176,11 +199,19 @@ Esta sección fija los nombres exactos que comparten los módulos. **Se define a
 | `ex:requiereIdioma`    | `xsd:string`            | `RequiereIdioma`      | `oferta: str`, `nivel: str`        |
 | `ex:ubicadaEn`         | `ex:Pais`               | `UbicadaEn`           | `uni: str`, `pais: str`            |
 
-Con esta tabla, el diccionario del traductor queda casi trivial:
+Con las dos tablas, los diccionarios del traductor quedan casi triviales:
 
 ```python
+CLASS_TO_FACT = {
+    EX.Oferta: Oferta,               EX.OfertaInternacional: OfertaInternacional,
+    EX.OfertaNacional: OfertaNacional, EX.Universidad: Universidad,
+    EX.UniversidadDestino: UniversidadDestino, EX.Pais: Pais,
+    EX.AreaConocimiento: AreaConocimiento, EX.Ingenieria: Ingenieria,
+    EX.NivelEstudios: NivelEstudios, EX.Convenio: Convenio,
+    EX.Beca: Beca,                   EX.Estudiante: Estudiante,
+}
+
 PREDICATE_TO_FACT = {
-    RDF.type:          EsInstanciaDe,
     EX.tieneCupos:     TieneCupos,
     EX.fechaCierre:    FechaCierre,
     EX.ofrecidaPor:    OfrecidaPor,
@@ -194,15 +225,17 @@ PREDICATE_TO_FACT = {
 }
 ```
 
-El traductor mapea **vocabulario**, no valores. Sigue cumpliendo la regla del enunciado: no contiene nombres ni valores propios de ningún caso específico.
+Ambos mapas mapean **vocabulario** (clases y predicados), no valores. El nombre del individuo (`oferta_montpellier_2027_1`) siempre sale del grafo, nunca del código; por eso se cumple la regla del enunciado: el traductor no contiene nombres ni valores de ningún caso específico.
+
+> Nota: `ex:ofrecidaPorUniversidadDestino` (la subpropiedad) no se lista aparte porque el razonador la propaga a `ex:ofrecidaPor`, que es la que el traductor traduce.
 
 ### 4.3 Regla de coherencia
 
 Cualquier cambio en las columnas de esta tabla (agregar predicado, cambiar tipo del rango) **obliga a actualizar simultáneamente**:
 
-1. La declaración de la propiedad en el `.ttl`.
+1. La declaración de la clase o propiedad en el `.ttl`.
 2. La clase de `Fact` correspondiente en el módulo experto.
-3. La entrada en `PREDICATE_TO_FACT` del traductor.
+3. La entrada en `CLASS_TO_FACT` (si es una clase) o en `PREDICATE_TO_FACT` (si es una propiedad) del traductor.
 4. Esta tabla en el `Context.md`.
 
 Si el cambio queda solo en 1-2 de esos lugares, el sistema o revienta o produce hechos vacíos silenciosamente.
@@ -219,7 +252,7 @@ El traductor debe **recorrer dinámicamente el grafo RDF ya razonado**, triple p
 
 **Prohibido:** declarar hechos a mano con valores fijos, del tipo `engine.declare(Oferta(pais='Francia'))`. El código del traductor no debe contener nombres ni valores de ningún caso concreto.
 
-**Diseño recomendado:** una clase de `Fact` por tipo de relación relevante (`EsInstanciaDe`, `OfreceEnPais`, `TieneCupos`, `FechaCierre`, …), con un diccionario en el traductor que mapee **predicado RDF → clase de `Fact`** (ver tabla de la sección 4.2). Ese diccionario no viola la regla porque mapea vocabulario, no valores de un caso.
+**Diseño recomendado:** una clase de `Fact` por cada **clase** de la ontología (`Oferta`, `OfertaInternacional`, `Pais`, …) y una por cada **propiedad** relevante (`OfreceEnPais`, `TieneCupos`, `FechaCierre`, …), con dos diccionarios en el traductor que mapeen **clase RDF → `Fact`** (`CLASS_TO_FACT`) y **predicado RDF → `Fact`** (`PREDICATE_TO_FACT`) — ver tablas de la sección 4.2. Esos diccionarios no violan la regla porque mapean vocabulario (clases y predicados), no valores de un caso. Así `ex:oferta_x rdf:type ex:OfertaInternacional` se traduce al hecho simple `OfertaInternacional(id="oferta_x")`.
 
 **Cobertura completa:** hay que traducir *todos* los triples relevantes:
 
@@ -242,32 +275,40 @@ traducir(g, engine)                            # 3. recorrer g YA expandido -> F
 engine.run()                                   # 4. disparar las reglas
 ```
 
-**2. Clases de `Fact` (Experta), una por relación del contrato §4.2:**
-`EsInstanciaDe`, `OfrecidaPor`, `OfreceEnPais`, `TieneArea`, `DirigidaANivel`, `RestringeArea`, `UbicadaEn`, `TieneCupos`, `FechaCierre`, `RequiereIdioma`, `OfreceBeca`. Cada una con sus slots tipados con `Field(...)`. Aparte, hechos **no ontológicos**: `Estudiante` (el perfil, declarado a mano) y `ResultadoDifuso` (que inyecta el módulo difuso).
+**2. Clases de `Fact` (Experta):** una por cada **clase** de la ontología
+(`Oferta`, `OfertaInternacional`, `OfertaNacional`, `Universidad`, `UniversidadDestino`,
+`Pais`, `AreaConocimiento`, `Ingenieria`, `NivelEstudios`, `Convenio`, `Beca`, `Estudiante`)
+y una por cada **propiedad** (`OfrecidaPor`, `OfreceEnPais`, `TieneArea`, `DirigidaANivel`,
+`RestringeArea`, `UbicadaEn`, `TieneCupos`, `FechaCierre`, `RequiereIdioma`, `OfreceBeca`),
+con sus slots tipados con `Field(...)`. Aparte, hechos **no ontológicos**: `Estudiante` (el
+perfil, declarado a mano) y `ResultadoDifuso` (que inyecta el módulo difuso).
 
-**3. El único mapa del traductor = vocabulario, no valores.** No contiene ni un nombre de universidad, país u oferta; solo predicados → clase de `Fact` (la tabla de §4.2):
+**3. Los dos mapas del traductor = vocabulario, no valores.** No contienen ni un nombre de universidad, país u oferta; solo clases y predicados → clase de `Fact` (tablas de §4.2):
 
 ```python
-PREDICATE_TO_FACT = { RDF.type: EsInstanciaDe, EX.ofrecidaPor: OfrecidaPor, EX.tieneCupos: TieneCupos, ... }
+CLASS_TO_FACT     = { EX.OfertaInternacional: OfertaInternacional, EX.Pais: Pais, ... }
+PREDICATE_TO_FACT = { EX.ofrecidaPor: OfrecidaPor, EX.tieneCupos: TieneCupos, ... }
 ```
 
 **4. Algoritmo de recorrido (genérico, sin valores de caso):**
 
 ```
 para cada (s, p, o) en g:
-    si p no está en PREDICATE_TO_FACT:            continuar   # ignora el ruido RDFS
-    si p == RDF.type y o NO es una clase ex::     continuar   # ignora rdfs:Resource, rdfs:Class, foaf:Person...
-    slot_s = nombre_local(s)                                  # quita el namespace -> string estable
+    si p == RDF.type:
+        si o NO está en CLASS_TO_FACT:            continuar   # ignora rdfs:Resource, rdfs:Class, foaf:Person...
+        engine.declare( CLASS_TO_FACT[o]( id=nombre_local(s) ) )   # hecho simple: Clase(id=individuo)
+        continuar
+    si p NO está en PREDICATE_TO_FACT:            continuar   # ignora el resto del ruido RDFS
     slot_o = nombre_local(o)  si o es URI
              valor_tipado(o)  si o es literal                 # xsd:integer->int, xsd:date->date, xsd:boolean->bool, xsd:string->str
-    engine.declare( PREDICATE_TO_FACT[p](slot_s, slot_o) )
+    engine.declare( PREDICATE_TO_FACT[p]( nombre_local(s), slot_o ) )
 ```
 
 Convertir el literal según su datatype es clave: así `TieneCupos` recibe un `int` real y `FechaCierre` un `date`, para que las reglas comparen números y fechas (regla "fecha vencida", competitividad difusa, etc.).
 
 **5. Filtro de relevancia.** Solo se traducen los predicados del contrato y los `rdf:type` hacia clases `ex:`. El andamiaje del cierre RDFS (`rdfs:Resource`, `subClassOf` reflexivo, variantes de literal, declaraciones de propiedad) **no** se traduce, porque no es conocimiento del dominio. Esto cumple la exigencia del enunciado ("cada triple **relevante**") y produce ~139 hechos.
 
-**6. Regla de coherencia (§4.3).** Agregar o cambiar un predicado obliga a tocar a la vez: el `.ttl`, la clase `Fact`, la entrada en `PREDICATE_TO_FACT` y la tabla §4.2.
+**6. Regla de coherencia (§4.3).** Agregar o cambiar una clase o un predicado obliga a tocar a la vez: el `.ttl`, la clase `Fact`, la entrada en `CLASS_TO_FACT` o `PREDICATE_TO_FACT`, y la tabla §4.2.
 
 ### 5.2 Lógica difusa → Sistema Experto
 
