@@ -72,7 +72,7 @@ Esta mezcla demuestra que las reglas discriminan correctamente.
 - `OfertaNacional` ⊑ `Oferta`
 - `UniversidadDestino` ⊑ `Universidad`
 - `Estudiante` ⊑ `foaf:Person`
-- `IngenieriaSistemas` ⊑ `AreaConocimiento`
+- `Ingenieria` ⊑ `AreaConocimiento` (subclase poblada con individuos de varias ingenierías: `area_ingenieria_sistemas`, `area_ingenieria_civil`, `area_ingenieria_electronica`, `area_ingenieria_industrial`, `area_ingenieria_mecanica`; cada uno se infiere además como `AreaConocimiento` → caso 1 de razonamiento)
 
 **Propiedades (mínimo 10, con `rdfs:domain` y `rdfs:range`):**
 `ofrecidaPor`, `ofreceEnPais`, `tieneArea`, `dirigidaANivel`, `tieneCupos` (→ `xsd:integer`), `fechaCierre` (→ `xsd:date`), `restringeArea`, `ofreceBeca`, `requiereIdioma`, `ubicadaEn`.
@@ -229,6 +229,46 @@ El traductor debe **recorrer dinámicamente el grafo RDF ya razonado**, triple p
 
 **Caso de prueba obligatorio:** agregar una universidad o una relación nueva **únicamente en el archivo `.ttl`**, volver a ejecutar sin tocar el código Python, y evidenciar que el hecho nuevo aparece automáticamente como `Fact` y activa las reglas correspondientes. **Si para reflejar el cambio hay que editar Python, el traductor está mal diseñado.**
 
+### 5.1.1 Ruta de implementación propuesta del traductor
+
+El traductor es una función `traducir(grafo_razonado, engine)` que recorre el grafo y declara hechos. La ruta completa:
+
+**1. Orden del pipeline (obligatorio).** Razonar ANTES de traducir; así las inferencias (p. ej. `oferta a Oferta`, `ofrecidaPor`) también llegan al experto:
+
+```python
+g.parse("ontologia.ttl")                       # 1. cargar la fuente canónica
+DeductiveClosure(RDFS_Semantics).expand(g)     # 2. razonar (agrega las inferencias en memoria)
+traducir(g, engine)                            # 3. recorrer g YA expandido -> Facts
+engine.run()                                   # 4. disparar las reglas
+```
+
+**2. Clases de `Fact` (Experta), una por relación del contrato §4.2:**
+`EsInstanciaDe`, `OfrecidaPor`, `OfreceEnPais`, `TieneArea`, `DirigidaANivel`, `RestringeArea`, `UbicadaEn`, `TieneCupos`, `FechaCierre`, `RequiereIdioma`, `OfreceBeca`. Cada una con sus slots tipados con `Field(...)`. Aparte, hechos **no ontológicos**: `Estudiante` (el perfil, declarado a mano) y `ResultadoDifuso` (que inyecta el módulo difuso).
+
+**3. El único mapa del traductor = vocabulario, no valores.** No contiene ni un nombre de universidad, país u oferta; solo predicados → clase de `Fact` (la tabla de §4.2):
+
+```python
+PREDICATE_TO_FACT = { RDF.type: EsInstanciaDe, EX.ofrecidaPor: OfrecidaPor, EX.tieneCupos: TieneCupos, ... }
+```
+
+**4. Algoritmo de recorrido (genérico, sin valores de caso):**
+
+```
+para cada (s, p, o) en g:
+    si p no está en PREDICATE_TO_FACT:            continuar   # ignora el ruido RDFS
+    si p == RDF.type y o NO es una clase ex::     continuar   # ignora rdfs:Resource, rdfs:Class, foaf:Person...
+    slot_s = nombre_local(s)                                  # quita el namespace -> string estable
+    slot_o = nombre_local(o)  si o es URI
+             valor_tipado(o)  si o es literal                 # xsd:integer->int, xsd:date->date, xsd:boolean->bool, xsd:string->str
+    engine.declare( PREDICATE_TO_FACT[p](slot_s, slot_o) )
+```
+
+Convertir el literal según su datatype es clave: así `TieneCupos` recibe un `int` real y `FechaCierre` un `date`, para que las reglas comparen números y fechas (regla "fecha vencida", competitividad difusa, etc.).
+
+**5. Filtro de relevancia.** Solo se traducen los predicados del contrato y los `rdf:type` hacia clases `ex:`. El andamiaje del cierre RDFS (`rdfs:Resource`, `subClassOf` reflexivo, variantes de literal, declaraciones de propiedad) **no** se traduce, porque no es conocimiento del dominio. Esto cumple la exigencia del enunciado ("cada triple **relevante**") y produce ~139 hechos.
+
+**6. Regla de coherencia (§4.3).** Agregar o cambiar un predicado obliga a tocar a la vez: el `.ttl`, la clase `Fact`, la entrada en `PREDICATE_TO_FACT` y la tabla §4.2.
+
 ### 5.2 Lógica difusa → Sistema Experto
 
 El resultado de la defuzzificación (puntaje de idoneidad y su categoría) se declara como hecho `ResultadoDifuso` y se usa **como precondición de al menos una regla**. Ejemplo: solo se genera una `Recomendacion` si la categoría difusa es `alta`.
@@ -248,6 +288,7 @@ Todos los hechos generados en la ontología deben traducirse al sistema experto,
 - Ese archivo cumple dos funciones:
   1. Fuente de datos del sistema cada vez que corre.
   2. Objeto que el profesor edita para la prueba obligatoria del traductor.
+- **Archivo derivado (opcional):** el script de razonamiento exporta además `ontologia_razonada.ttl`, una copia del grafo **después** de razonar (con las tripletas inferidas), solo para inspección. No es la fuente del sistema y nunca sustituye al canónico.
 
 ### 6.2 Cómo generar el `.ttl` sin escribir Turtle a mano
 
@@ -258,7 +299,15 @@ Todos los hechos generados en la ontología deben traducirse al sistema experto,
 
 ### 6.3 Volumen esperado de triples
 
-Los mínimos del enunciado (10 clases, 5 subClassOf, 10 propiedades, ≥ 4 individuos por clase) se refieren a **lo que escribís vos** antes del razonador. Con 10 clases × 4 individuos = 40 individuos más sus propiedades entre ellos, el `.ttl` inicial rondará entre **150 y 250 triples**. Después del razonador debe crecer **al menos 4** (mínimo del enunciado; conviene apuntar a 8-10 para tener margen).
+Los mínimos del enunciado (10 clases, 5 subClassOf, 10 propiedades, ≥ 4 individuos por clase) se refieren a **lo que escribís vos** antes del razonador. Después del razonador el grafo debe crecer **al menos 4** hechos nuevos (mínimo del enunciado).
+
+**Valores reales de esta implementación.** Con **8 ofertas** (4 internacionales + 4 nacionales, el mínimo para cumplir "≥ 4 individuos" en `OfertaInternacional` y `OfertaNacional`):
+
+- `ontologia.ttl` canónico: **235 triples** asertados → **509** tras razonar (**274** inferidos).
+- De esos 509, el traductor mapea solo los **~139 hechos relevantes** (tipos hacia clases `ex:` + las 11 propiedades del contrato); el resto es andamiaje RDFS. 139 está muy por encima del mínimo de 40 del enunciado.
+- Se eligió reducir de 15 a 8 ofertas para acotar el número de hechos manteniendo todos los mínimos y los casos de discriminación clave (apta, fecha vencida + GPA, con beca, restringida por área, nacional con Ing. de Sistemas).
+
+**Política de anotaciones (para no duplicar tripletas).** `rdfs:label` es obligatorio solo en clases y propiedades. En los individuos se usa una sola anotación legible según su semántica: `foaf:name` para agentes (estudiantes, universidades), `dct:title`/`dct:description` para documentos (ofertas, convenios, becas) y `rdfs:label` para el resto (países, niveles, áreas). Se evita así el par redundante `rdfs:label` + `foaf:name` con el mismo valor.
 
 ### 6.4 Flujo en Colab
 
