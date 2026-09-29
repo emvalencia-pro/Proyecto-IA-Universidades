@@ -18,29 +18,24 @@ Namespace del proyecto: `ex: <http://intercambios.unal.edu.co/>`.
 
 ---
 
-## 2. Estructura del notebook (19 celdas)
+## 2. Estructura del notebook (27 celdas)
 
-| # | Tipo | Contenido |
-|---|---|---|
-| 0 | md | Portada |
-| 1 | code | `%pip install rdflib owlrl` |
-| 2 | md | Encabezado "Ontología" |
-| 3 | code | `build_ontologia`: construye el grafo con `g.add(...)` y lo serializa a `ontologia.ttl` (script auxiliar, se corre una sola vez; no es parte del sistema en operación) |
-| 4 | code | `%%writefile ontologia.ttl` — la ontología canónica en Turtle (esto es lo que el sistema realmente lee; **sobrescribe** el archivo que generó la celda 3) |
-| 5 | code | `razonamiento`: carga el `.ttl`, aplica `DeductiveClosure(RDFS_Semantics)`, verifica los 3 casos de inferencia exigidos y compara antes/después |
-| 6 | md | Encabezado "Lógica difusa" |
-| 7 | code | `%pip install scikit-fuzzy` |
-| 8 | code | Módulo difuso completo: variables, reglas, defuzzificación, funciones de integración con el grafo |
-| 9 | md | Encabezado "Sistema experto e integración" |
-| 10 | code | `%pip install experta` |
-| 11 | code | Parche de compatibilidad + **todas las clases de `Fact`** |
-| 12 | code | Traductor Ontología → Sistema Experto (`CLASS_TO_FACT`, `PREDICATE_TO_FACT`, `traducir()`) |
-| 13 | code | `EstrategiaConflictos`, `AgendaConTraza` y la clase `SistemaExpertoIntercambios` con **25 reglas** |
-| 14 | code | `correr_caso()` + 5 escenarios de demo (estudiantes reales de la ontología) |
-| 15 | code | Pruebas unitarias de reglas que no se disparan con los datos reales |
-| 16 | code | Demostración explícita de los 3 mecanismos de resolución de conflictos, con `assert` |
-| 17 | md | Encabezado de la prueba obligatoria |
-| 18 | code | Caso de prueba obligatorio del traductor (edita el `.ttl`, no el código) |
+Cada módulo tiene celdas markdown que explican diseño y decisiones (flujo general en la portada, tablas de variables y reglas difusas, justificación del centroide, explicación detallada de Salience/Especificidad/Recencia y Lock-Fact).
+
+| Sección | Contenido |
+|---|---|
+| Portada | Problema, diagrama del flujo general, mapa de módulos |
+| 1.1 Ontología | `%pip`, generador `build_ontologia` (`g.add`) y `%%writefile ontologia.ttl` (canónico) |
+| 1.2 Razonamiento | `DeductiveClosure(RDFS_Semantics)`, 3 casos con tabla explicativa, comparación antes/después |
+| 1.3 Diagrama de clases | `diagrama_clases()` lee el esquema del `.ttl` y guarda `diagrama_clases.png` (para el PDF) |
+| 2.1 Lógica difusa | `%pip`, módulo difuso completo, gráficas `mf_*.png` y `salida_centroide.png` |
+| 3.1 Hechos | `%pip experta`, parche `collections.Mapping`, **54 clases de `Fact`** |
+| 3.2 Traductor | `CLASS_TO_FACT`, `PREDICATE_TO_FACT`, `SCHEMA_TO_FACT`, `ANNOTATION_TO_FACT`, `traducir()` |
+| 3.3 Motor | `EstrategiaConflictos`, `AgendaConTraza`, `SistemaExpertoIntercambios` con **30 reglas** |
+| 3.4 Ejecución | `correr_caso()` + 5 escenarios (imprime conteo del traductor y diagnóstico del esquema) |
+| 3.5 Pruebas | Pruebas unitarias con `assert` (r02, r04, r08, r19, r20, r00b, r24, r27) |
+| 3.6 Conflictos | Demostración de los 3 mecanismos con `assert` |
+| 4.1 Prueba obligatoria | Individuo + propiedad nuevos solo en el `.ttl` |
 
 **Importante — orden de las celdas 3 y 4:** la celda 3 genera `ontologia.ttl` dinámicamente y la celda 4 lo vuelve a escribir con `%%writefile` (contenido curado a mano, ligeramente distinto: 294 triples la versión dinámica vs. **292** la canónica). El archivo que el resto del notebook usa es siempre el de la celda 4, porque se ejecuta después. Editar la celda 4 (o el archivo `ontologia.ttl` directamente) es la forma correcta de cambiar la ontología; la celda 3 es solo el generador inicial.
 
@@ -52,7 +47,7 @@ Namespace del proyecto: `ex: <http://intercambios.unal.edu.co/>`.
 
 `Oferta`, `Universidad`, `Pais`, `AreaConocimiento`, `NivelEstudios`, `Convenio`, `Beca`, `Estudiante` (⊑ `foaf:Person`), `OfertaInternacional` (⊑ `Oferta`), `OfertaNacional` (⊑ `Oferta`), `UniversidadDestino` (⊑ `Universidad`), `Ingenieria` (⊑ `AreaConocimiento`).
 
-### 3.2 Propiedades (20, con `rdfs:domain`/`rdfs:range`, 1 `rdfs:subPropertyOf`)
+### 3.2 Propiedades (17, con `rdfs:domain`/`rdfs:range`, 1 `rdfs:subPropertyOf`)
 
 **Sobre `Oferta`:** `ofrecidaPor`→Universidad, `ofreceEnPais`→Pais, `tieneArea`→AreaConocimiento, `dirigidaANivel`→NivelEstudios, `restringeArea`→AreaConocimiento, `tieneCupos`→xsd:integer, `fechaCierre`→xsd:date, `requiereIdioma`→xsd:string, `ofreceBeca`→xsd:boolean, `tieneBeca`→Beca, `amparadaPorConvenio`→Convenio.
 
@@ -124,12 +119,13 @@ for _name in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Set"):
 ```
 Sin esto, `import experta` falla con `AttributeError` en cualquier Colab o entorno local con Python ≥ 3.10. Verificado también en este repo con Python 3.14.
 
-### 5.2 Clases de `Fact` (28 en total)
+### 5.2 Clases de `Fact` (54 en total)
 
 - **De clases de la ontología** (`CLASS_TO_FACT`, solo slot `id`): `Oferta`, `OfertaInternacional`, `OfertaNacional`, `Universidad`, `UniversidadDestino`, `Pais`, `AreaConocimiento`, `Ingenieria`, `NivelEstudios`, `Convenio`, `Beca`, `Estudiante`.
 - **De propiedades** (`PREDICATE_TO_FACT`, slots tipados): `TieneCupos`, `FechaCierre`, `OfrecidaPor`, `OfrecidaPorUniversidadDestino`, `OfreceEnPais`, `TieneArea`, `DirigidaANivel`, `RestringeArea`, `OfreceBeca`, `RequiereIdioma`, `UbicadaEn`, `TieneBeca`, `AmparadaPorConvenio`, `EstudiaArea`, `CursaNivel`, `TienePromedio`, `DominaIdioma`.
 - **De anotaciones** (`ANNOTATION_TO_FACT`): `Nombre` (de `foaf:name`, `dct:title`, `rdfs:label`), `Descripcion` (de `dct:description`).
-- **Genéricas de esquema/cobertura total:** `EsInstanciaDe` (rdf:type hacia una clase `ex:` que NO está en `CLASS_TO_FACT`), `SubClaseDe` (jerarquía `rdfs:subClassOf` entre clases `ex:`), `Relacion` (cualquier predicado `ex:` que NO está en `PREDICATE_TO_FACT` — ver §5.3, esto es lo que hace el traductor verdaderamente "a prueba de futuro").
+- **Esquema:** `ClaseOntologia` (rdf:type rdfs:Class), `PropiedadOntologia` (rdf:type rdf:Property, incluida la inferida por rdf1), `Dominio`, `Rango`, `SubClaseDe` (incluye `foaf:Person`), `SubPropiedadDe`.
+- **Genéricas de cobertura total:** `EsInstanciaDe` (rdf:type hacia una clase sin Fact propio, p. ej. el `foaf:Person` inferido de cada estudiante), `Relacion` (cualquier predicado `ex:` que NO está en `PREDICATE_TO_FACT` — ver §5.3, esto es lo que hace el traductor verdaderamente "a prueba de futuro").
 - **No ontológicas / de control:** `Hoy`, `Consulta`, `PerfilCandidato`, `ResultadoDifuso`, `CumpleIdioma`, `Descartada`, `Elegible`, `Procesada`, `Afinidad`, `Recomendacion`, `Advertencia`, `Respaldo`, `SugerenciaBeca`, `Nota`.
 
 ### 5.3 Traductor (celda 12) — cobertura total, no solo lo previsto
@@ -147,7 +143,10 @@ ANNOTATION_TO_FACT= { FOAF.name: Nombre, DCTERMS.title: Nombre, ... }
 4. predicado de anotación (`foaf:name`, `dct:title`, `rdfs:label`, `dct:description`) → `Nombre`/`Descripcion`.
 5. `rdfs:subClassOf` entre clases `ex:` → `SubClaseDe`.
 6. cualquier otro predicado del dominio (`ex:`) no previsto → `Relacion(sujeto, predicado, objeto)` genérico.
-7. cualquier otra cosa (andamiaje RDFS: `rdfs:Resource`, `subClassOf` reflexivo, etc.) → se ignora.
+7. `rdfs:domain`/`rdfs:range`/`rdfs:subClassOf`/`rdfs:subPropertyOf` → `Dominio`/`Rango`/`SubClaseDe`/`SubPropiedadDe` (`SCHEMA_TO_FACT`); `rdf:type rdfs:Class`/`rdf:Property` → `ClaseOntologia`/`PropiedadOntologia`.
+8. Solo se ignoran axiomas triviales (`es_axioma_trivial`): sujeto fuera de `ex:` (axiomas del vocabulario RDF/RDFS/XSD), `x rdf:type rdfs:Resource`, y reflexividad de subClassOf/subPropertyOf. En la ejecución real: 328 de 609 triples → Facts, 281 axiomas triviales. `correr_caso()` imprime este conteo.
+
+(Antes de esta versión el traductor descartaba todo el esquema —domain, range, subPropertyOf, declaraciones de clases/propiedades— y el `foaf:Person` inferido; eso incumplía "todos los hechos de la ontología".)
 
 **Por qué esto importa:** el paso 6 significa que si mañana agregan una propiedad nueva a la ontología SIN tocar `PREDICATE_TO_FACT`, el traductor no la descarta silenciosamente — la captura como `Relacion` genérica, y las reglas `r22_clase_nueva`/`r23_relacion_nueva` la reportan. Esto se probó explícitamente en la prueba obligatoria (§7.3) agregando `ex:ofreceAlojamiento` — una propiedad que **no existe** en `PREDICATE_TO_FACT` — y verificando que igual aparece como hecho.
 
@@ -157,7 +156,7 @@ Ningún nombre ni valor de un caso concreto está escrito en el traductor: los d
 
 **El perfil NO se declara a mano.** El único dato de entrada manual es `Consulta(estudiante="est_juan_sistemas")` (o el id que sea). La regla `r00_perfil_desde_ontologia` (salience 200, la de mayor prioridad) deriva `PerfilCandidato(id, nivel_estudios, area)` a partir de los hechos que el traductor ya generó (`CursaNivel`, `EstudiaArea` del estudiante consultado). Si el estudiante no existe en la ontología, `r00b_estudiante_inexistente` lo reporta y el motor simplemente no genera ningún `PerfilCandidato` (probado en celda 15).
 
-### 5.5 Motor de reglas — `SistemaExpertoIntercambios` (25 reglas)
+### 5.5 Motor de reglas — `SistemaExpertoIntercambios` (30 reglas)
 
 **Niveles de salience usados:** 200 (derivar perfil), 110 (derivar cumplimiento de idioma), 100 (filtros duros de descarte), 50 (elegibilidad vía difuso + afinidad), 10 (generar recomendación), 5 (enriquecer con notas/avisos/becas sugeridas), 0 (reportes). Son más de los 3 niveles mínimos exigidos, agrupables conceptualmente en 3 fases: **derivar → filtrar/evaluar → generar salida**.
 
@@ -185,6 +184,11 @@ Ningún nombre ni valor de un caso concreto está escrito en el traductor: los d
 | `r21_nota_descripcion` | 5 | Añade la `Descripcion` de la oferta como nota |
 | `r13_informe_descarte` | 0 | Imprime cada descarte con el nombre legible de la oferta |
 | `r22_clase_nueva` / `r23_relacion_nueva` | 0 | Reportan cualquier `EsInstanciaDe`/`Relacion` genérica (cobertura total, ver §5.3) |
+| `r24_promedio_insuficiente_internacional` | 100 | Descarta ofertas internacionales si `TienePromedio` < `PROMEDIO_MINIMO_INTERNACIONAL` (3.5, política del sistema). Es la regla que usa `TienePromedio` |
+| `r25_candidato_superclase` | 0 | `Diagnostico`: el candidato también es `foaf:Person` (usa `SubClaseDe` + `EsInstanciaDe`) |
+| `r26_subpropiedad_coherente` | 0 | Valida `SubPropiedadDe` con `Dominio`/`Rango`/`SubClaseDe`/`ClaseOntologia`/`PropiedadOntologia` |
+| `r27_subpropiedad_incoherente` | 0 | Detecta subpropiedad con rango que no es subclase del rango del padre |
+| `r28_propiedad_sin_dominio` | 0 | Detecta propiedades usadas sin `rdfs:domain` (se dispara en la prueba obligatoria con `ofreceAlojamiento`) |
 
 ### 5.6 Los 3 mecanismos de resolución de conflictos — implementados en el motor, no simulados
 
@@ -231,14 +235,14 @@ reporte(engine)                                    # imprime Recomendaciones ord
 | D | `est_maria_matematicas` (matemáticas) | 2026-08-01 | La misma oferta Stavanger que se descartaba en A ahora se recomienda (el área sí coincide) |
 | E | `est_ana_humanidades` | 2026-08-01 | Sin el idioma exigido (`r18`) y promedio bajo |
 
-Resultado real del Escenario A: 305 hechos en memoria, 30 reglas disparadas, 6 recomendaciones (la primera con `alta+beca`).
+Resultado real del Escenario A: 376 hechos en memoria, 32 reglas disparadas, 6 recomendaciones (la primera con `alta+beca`). El Escenario E ahora muestra `r24` (Ana, promedio 3.1, pierde las ofertas internacionales).
 
 ---
 
 ## 7. Pruebas (celdas 15, 16, 18) — todas verificadas pasando
 
 ### 7.1 Unitarias (celda 15)
-Con hechos sintéticos, porque las 8 ofertas reales no cubren todos los casos: `r02` (sin cupos), `r04` (área restringida no exclusiva), `r08` (idoneidad baja), `r19` (ubicación inconsistente), `r20` (afinidad entre ingenierías distintas), `r00b` (estudiante inexistente). Las 6 pasan.
+Con hechos sintéticos, porque las 8 ofertas reales no cubren todos los casos: `r02` (sin cupos), `r04` (área restringida no exclusiva), `r08` (idoneidad baja), `r19` (ubicación inconsistente), `r20` (afinidad entre ingenierías distintas), `r00b` (estudiante inexistente), `r24` (promedio insuficiente), `r27` (subpropiedad incoherente). Las 8 pasan.
 
 ### 7.2 Demostración de mecanismos (celda 16)
 Ver §5.6 — 3 `assert` (uno por mecanismo) más una traza completa de los primeros 12 disparos del Escenario A.
@@ -255,7 +259,7 @@ Nótese `ex:ofreceAlojamiento`: una propiedad que **no existe** en `PREDICATE_TO
 - la propiedad desconocida se tradujo como `Relacion` genérica,
 - las reglas la recomendaron (`Recomendacion`).
 
-Las 4 comprobaciones dan `True` en la ejecución real.
+Las 5 comprobaciones (incluida la de `r28`, que marca `ofreceAlojamiento` como propiedad sin `rdfs:domain`) dan `True` en la ejecución real.
 
 ---
 
@@ -263,8 +267,8 @@ Las 4 comprobaciones dan `True` en la ejecución real.
 
 | Requisito (Enunciado.MD §2) | Mínimo | Real | Estado |
 |---|---|---|---|
-| Clases de hechos (Experta) | 5 | 28 | ✅ |
-| Reglas | 15 | 25 | ✅ |
+| Clases de hechos (Experta) | 5 | 54 | ✅ |
+| Reglas | 15 | 30 | ✅ |
 | Niveles de salience | 3 | 7 valores en 3 fases | ✅ |
 | Mecanismos de conflicto (los 3) | Salience, Specificity, Recency | Implementados en `EstrategiaConflictos`, demostrados con `assert` | ✅ |
 | Mecanismo anti-bucle (No-Loop o Lock-Fact) | 1 | 2 (Descartada + Procesada) | ✅ |
@@ -277,9 +281,9 @@ Las 4 comprobaciones dan `True` en la ejecución real.
 | Defuzzificación justificada | sí | centroide | ✅ |
 | Clases ontología | 10 | 12 | ✅ |
 | subClassOf | 5 | 5 | ✅ |
-| Propiedades con domain/range | 10 | 20 | ✅ |
+| Propiedades con domain/range | 10 | 17 | ✅ |
 | subPropertyOf | 1 | 1 | ✅ |
-| Individuos por clase | 4 | ver riesgo abajo | ⚠️ |
+| Individuos por clase | 4 | ≥4 tras razonar; ver nota abajo | ⚠️ |
 | Razonamiento OWL-RL, 3 casos, ≥4 hechos nuevos | sí | 3 casos + 32 hechos nuevos | ✅ |
 | Traductor dinámico (sin valores fijos) | sí | verificado con propiedad desconocida | ✅ |
 | Caso de prueba obligatorio del traductor | sí | verificado | ✅ |
@@ -297,6 +301,6 @@ Las 4 comprobaciones dan `True` en la ejecución real.
 - **Un solo `.ttl` canónico** (celda 4, `%%writefile`). El razonador nunca lo modifica en disco. La celda 3 es solo el generador inicial, no se re-ejecuta como parte del flujo normal salvo para regenerar la ontología desde cero.
 - **Coherencia clase/propiedad ↔ traductor:** gracias a la cobertura genérica (`EsInstanciaDe`, `Relacion`, `SubClaseDe`), agregar una clase o propiedad nueva al `.ttl` **no rompe** el traductor — como mínimo aparece como hecho genérico. Para que una regla la use explícitamente sí hay que agregarla a `CLASS_TO_FACT`/`PREDICATE_TO_FACT` y escribir la regla.
 - **El perfil del candidato siempre se deriva de la ontología** (vía `Consulta` + `r00`). No declarar `PerfilCandidato` a mano salvo en pruebas unitarias aisladas (celda 15).
-- **Archivos gitignorados** (regenerables, no se versionan): `ontologia.ttl`, `mf_promedio.png`, `mf_idioma.png`, `mf_cupos.png`, `mf_idoneidad.png`, `salida_centroide.png`.
+- **Archivos gitignorados** (regenerables, no se versionan): `ontologia.ttl`, `diagrama_clases.png`, `mf_promedio.png`, `mf_idioma.png`, `mf_cupos.png`, `mf_idoneidad.png`, `salida_centroide.png`.
 - **Instalación de dependencias:** todas las celdas de instalación usan `%pip` (no `!pip`), para instalar siempre en el entorno real del kernel. Nombres de paquete vs. import que no coinciden: `scikit-fuzzy` (pip) / `skfuzzy` (import).
 - **Python ≥ 3.10:** `experta` requiere el parche de `collections.Mapping` de la celda 11 antes de importarse; no quitarlo.
