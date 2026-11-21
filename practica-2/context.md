@@ -262,7 +262,7 @@ Todo esto sale de `Enunciado.md` y `bloques.md`; revisen ambos para el detalle.
 - Mantener acotado el tiempo de ejecución, porque el notebook completo debe correr de principio a fin sin errores:
   - Búsquedas de hiperparámetros pequeñas (por ejemplo, un `GridSearchCV` con pocas combinaciones y `n_jobs=-1`).
   - Como referencia, el bloque 1 corre en ~15 s. Apunten a que cada bloque tarde unos pocos minutos.
-- En el markdown, justificar las decisiones, dirigido al profesor: qué se eligió y **por qué**, con datos cuando se pueda. No expliquen teoría del curso.
+- Escribir el markdown con el tono de la sección 7.1.
 
 **No hacer:**
 - No modificar las secciones 0–4.10.
@@ -271,6 +271,28 @@ Todo esto sale de `Enunciado.md` y `bloques.md`; revisen ambos para el detalle.
 - No evaluar en `X_test` por fuera de `registrar_resultado` / `predecir_demo`, ni elegir hiperparámetros con la prueba.
 - No entrenar con datos reducidos por PCA.
 - No cambiar `GENERAR_SUBCONJUNTO` a `True`.
+
+### 7.1 Tono del markdown
+El notebook se dirige al **profesor**: no enseña, **justifica**. Todo el notebook debe sonar igual, así que sigan estos criterios (las secciones 0–4.10 son el modelo):
+
+1. **Primera persona del plural.** "Elegimos", "descartamos", "conservamos". No le hablen al lector ("pongan", "ustedes", "fíjense").
+2. **Conciso.** Cada decisión con su motivo y, si existe, el dato que la respalda. Nada de relleno ni de frases de transición.
+3. **No definan conceptos del curso.** El profesor sabe qué es SMOTE, cómo funciona KNN o qué mide el F1. Expliquen **por qué** lo usaron, no **qué** es.
+4. **Nombren las alternativas descartadas** y el motivo: "Elegimos X frente a Y porque…".
+5. **Usen cifras reales del notebook.** Nada de "mejora bastante" o "es mucho mejor": escriban "el F1 pasa de 0.49 a 0.59". Si la cifra cambia al reentrenar, actualicen el texto.
+6. **Nada que no se pueda sostener en la sustentación.** Si una afirmación es una suposición que los datos no muestran, quítenla o preséntenla explícitamente como hipótesis.
+7. **Español formal pero natural**, sin emojis y sin exclamaciones.
+
+**Ejemplos (antes → después):**
+
+| ❌ Explica / ambiguo | ✅ Justifica |
+|---|---|
+| "Pearson mide relaciones lineales entre números continuos, mientras que Spearman trabaja con el orden…" | "Usamos Spearman en lugar de Pearson porque 5 de las variables y el objetivo son ordinales, y la relación esperada es monótona, no necesariamente lineal." |
+| "KNN clasifica un punto según la clase mayoritaria de sus k vecinos más cercanos. Probamos varios k." | "Elegimos k = 15: maximiza el accuracy de la validación cruzada de 5 folds (0.61) y valores mayores no mejoran el accuracy en validación." |
+| "¿Quieren correr todo desde el original? Pongan la bandera en True." | "Con `GENERAR_SUBCONJUNTO = True`, el notebook genera el subconjunto desde el original y lo usa en todas las secciones siguientes." |
+| "La red funciona muy bien con Dropout." | "Usamos Dropout de 0.3: sin él, la pérdida de validación empieza a subir desde la época 20 mientras la de entrenamiento sigue bajando (sobreajuste)." |
+
+(Las cifras de los ejemplos 2 y 4 son ilustrativas: usen las suyas.)
 
 ---
 
@@ -325,6 +347,7 @@ Antes de cada actualización del contexto, y al menos una vez antes de entregar 
 - [ ] Todo lo aleatorio usa `random_state=SEMILLA` y, al correr dos veces, salen los mismos resultados.
 - [ ] Lo escrito en este archivo coincide con el notebook: hiperparámetros, nombres, estado y tiempos.
 - [ ] Lo escrito en el markdown del notebook coincide con los resultados que realmente se obtienen (sin cifras desactualizadas).
+- [ ] El markdown sigue el tono de la sección 7.1: justifica y no explica teoría, está en primera persona del plural y no tiene afirmaciones sin respaldo.
 - [ ] Revisaron si otro bloque actualizó este archivo y si eso afecta su trabajo.
 
 Si encuentran una inconsistencia, corríjanla en su sección o avísenle al responsable del bloque afectado.
@@ -364,6 +387,6 @@ Si encuentran una inconsistencia, corríjanla en su sección o avísenle al resp
 
 ## 11. Instrucción sugerida para tu IA
 
-> Estoy trabajando en el bloque X de un proyecto de aprendizaje de máquinas en un notebook de Jupyter. Te adjunto `context.md` (el contrato del equipo), `Enunciado.md`, `bloques.md` y `practica-2.ipynb`. Las secciones 0 a 4.10 ya están cerradas: no las modifiques ni vuelvas a preprocesar datos. Usa `casos[1..8]`, `SEMILLA` y las funciones del contrato (`registrar_resultado`, `predecir_demo`, `reporte_por_clase`, `graficar_matriz_confusion`, `registrar_clustering`), respetando las reglas de uso de los conjuntos y de código de `context.md`. Escribe mi sección como funciones reutilizables con docstrings en español, y el markdown justificando cada decisión, dirigido al profesor. Antes de escribir código, dime qué vas a hacer en cada paso.
+> Estoy trabajando en el bloque X de un proyecto de aprendizaje de máquinas en un notebook de Jupyter. Te adjunto `context.md` (el contrato del equipo), `Enunciado.md`, `bloques.md` y `practica-2.ipynb`. Las secciones 0 a 4.10 ya están cerradas: no las modifiques ni vuelvas a preprocesar datos. Usa `casos[1..8]`, `SEMILLA` y las funciones del contrato (`registrar_resultado`, `predecir_demo`, `reporte_por_clase`, `graficar_matriz_confusion`, `registrar_clustering`), respetando las reglas de uso de los conjuntos y de código de `context.md`. Escribe mi sección como funciones reutilizables con docstrings en español. Escribe el markdown siguiendo exactamente la sección 7.1 de `context.md`: dirigido al profesor, en primera persona del plural, conciso, justificando cada decisión con cifras reales del notebook y nombrando las alternativas descartadas, sin explicar teoría del curso. Usa como modelo de tono el markdown de las secciones 0–4.10. Antes de escribir código, dime qué vas a hacer en cada paso.
 >
 > Cada vez que terminemos una parte, actualiza mi subsección en la sección 10.3 de `context.md` (estado, decisiones con su justificación, nombres globales nuevos, tiempo de ejecución, hallazgos y dudas), sin tocar las de los demás bloques. Antes de actualizarla, haz la verificación de consistencia de la sección 10.2 y dime qué encontraste.
