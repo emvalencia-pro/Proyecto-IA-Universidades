@@ -3,6 +3,8 @@
 > **Para quién es este archivo:** para los integrantes del equipo que trabajan en los bloques 2, 3 y 4, **y para la IA que usen**. Si trabajas con una IA, pásale este archivo completo junto con `practica-2.ipynb`, `Enunciado.md` y `bloques.md`.
 >
 > **Regla principal:** el bloque 1 (secciones 0 a 4.10 del notebook) ya está cerrado y probado. **No lo modifiques.** Si necesitas un cambio ahí, pídeselo al responsable del bloque 1.
+>
+> **Este archivo se actualiza entre todos:** cada bloque registra su avance en la sección 10.3 y verifica periódicamente la consistencia (sección 10.2).
 
 ---
 
@@ -296,6 +298,72 @@ Cada sección del notebook tiene la justificación completa. **Todos deben enten
 
 ---
 
-## 10. Instrucción sugerida para tu IA
+## 10. Mantener este contexto actualizado (obligatorio)
+
+Este archivo es la **fuente de verdad del equipo**. Cada bloque debe ir registrando aquí lo que hace, para que los demás (y sus IA) trabajen con información actual y el bloque 1 pueda integrar sin sorpresas.
+
+### 10.1 Qué agregar y cuándo
+Cada vez que terminen una parte de su bloque (no solo al final), actualicen **su** subsección en la 10.3 con lo siguiente:
+- **Estado:** qué casos están entrenados y registrados, y qué falta.
+- **Decisiones y su justificación:** hiperparámetros elegidos y por qué (por ejemplo, "k = 15 por CV de 5 folds y accuracy en validación"), arquitectura de la red, ε y MinPts, etc.
+- **Nombres globales nuevos:** funciones y variables que definan y que otros puedan usar o deban evitar.
+- **Tiempo de ejecución** aproximado de su sección.
+- **Hallazgos relevantes** para el análisis general: patrones, resultados inesperados o problemas.
+- **Dudas o cambios que necesiten de otro bloque.**
+
+Reglas:
+- Editen **solo su subsección**. Si algo de otra sección está mal o desactualizado, avísenle al responsable en vez de cambiarlo.
+- Si una decisión cambia, **actualícenla**, no la dupliquen: el archivo debe reflejar siempre el estado actual.
+- No borren las secciones 1 a 9. Si creen que algo del contrato debe cambiar, se acuerda con el bloque 1.
+
+### 10.2 Verificación periódica de consistencia
+Antes de cada actualización del contexto, y al menos una vez antes de entregar su sección, verifiquen (o pídanle a su IA que verifique):
+- [ ] El notebook **corre de principio a fin sin errores** en un kernel reiniciado.
+- [ ] `tabla_figura1()` (o `tabla_figura3()` en el bloque 4) muestra sus resultados en los 8 casos, sin celdas vacías en su parte.
+- [ ] Todos los resultados se registraron con `registrar_resultado` / `registrar_clustering` y los nombres de algoritmo son los del contrato.
+- [ ] No reasignaron ninguno de los nombres reservados de la sección 7 ni modificaron las secciones 0–4.10.
+- [ ] Todo lo aleatorio usa `random_state=SEMILLA` y, al correr dos veces, salen los mismos resultados.
+- [ ] Lo escrito en este archivo coincide con el notebook: hiperparámetros, nombres, estado y tiempos.
+- [ ] Lo escrito en el markdown del notebook coincide con los resultados que realmente se obtienen (sin cifras desactualizadas).
+- [ ] Revisaron si otro bloque actualizó este archivo y si eso afecta su trabajo.
+
+Si encuentran una inconsistencia, corríjanla en su sección o avísenle al responsable del bloque afectado.
+
+### 10.3 Registro por bloque
+
+#### Bloque 1 – Datos, preprocesamiento y evaluación comparativa
+- **Estado:** secciones 0–4.10 terminadas y verificadas (el notebook corre completo en ~15 s). Las funciones del contrato están probadas con modelos de relleno. Falta la sección 7, que depende de los resultados de los bloques 2 y 3.
+- **Nombres globales:** los de la sección 7 de este archivo.
+- **Pendiente:** confirmar con el profesor la interpretación de "3 datos de prueba".
+
+#### Bloque 2 – Árboles y KNN
+- **Estado:** _sin iniciar_
+- **Decisiones:**
+- **Nombres globales nuevos:**
+- **Tiempo de ejecución:**
+- **Hallazgos:**
+- **Dudas o cambios solicitados:**
+
+#### Bloque 3 – SVM y redes neuronales
+- **Estado:** _sin iniciar_
+- **Decisiones:**
+- **Nombres globales nuevos:**
+- **Tiempo de ejecución:**
+- **Hallazgos:**
+- **Dudas o cambios solicitados:**
+
+#### Bloque 4 – K-Means y DBSCAN
+- **Estado:** _sin iniciar_
+- **Decisiones:**
+- **Nombres globales nuevos:**
+- **Tiempo de ejecución:**
+- **Hallazgos:**
+- **Dudas o cambios solicitados:**
+
+---
+
+## 11. Instrucción sugerida para tu IA
 
 > Estoy trabajando en el bloque X de un proyecto de aprendizaje de máquinas en un notebook de Jupyter. Te adjunto `context.md` (el contrato del equipo), `Enunciado.md`, `bloques.md` y `practica-2.ipynb`. Las secciones 0 a 4.10 ya están cerradas: no las modifiques ni vuelvas a preprocesar datos. Usa `casos[1..8]`, `SEMILLA` y las funciones del contrato (`registrar_resultado`, `predecir_demo`, `reporte_por_clase`, `graficar_matriz_confusion`, `registrar_clustering`), respetando las reglas de uso de los conjuntos y de código de `context.md`. Escribe mi sección como funciones reutilizables con docstrings en español, y el markdown justificando cada decisión, dirigido al profesor. Antes de escribir código, dime qué vas a hacer en cada paso.
+>
+> Cada vez que terminemos una parte, actualiza mi subsección en la sección 10.3 de `context.md` (estado, decisiones con su justificación, nombres globales nuevos, tiempo de ejecución, hallazgos y dudas), sin tocar las de los demás bloques. Antes de actualizarla, haz la verificación de consistencia de la sección 10.2 y dime qué encontraste.
