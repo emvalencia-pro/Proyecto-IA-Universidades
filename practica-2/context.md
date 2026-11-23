@@ -368,13 +368,22 @@ Si encuentran una inconsistencia, corríjanla en su sección o avísenle al resp
 - **Dudas o cambios solicitados:**
 
 #### Bloque 3 – SVM y redes neuronales
-- **Estado:** _sin iniciar_
+- **Estado:** sección 6 terminada. SVM y Redes Neuronales entrenados y registrados en los **8 casos** con `registrar_resultado`; `predecir_demo` en los 8 casos; matriz de confusión y reporte por clase del caso 8 de ambos modelos; regiones de decisión del SVM con PCA (casos 4 y 8); curvas de pérdida y accuracy de la red en los 8 casos. El notebook completo corre de principio a fin sin errores en un kernel reiniciado (~6.5 min) y da las mismas cifras en dos ejecuciones.
 - **Decisiones:**
-- **Nombres globales nuevos:**
-- **Tiempo de ejecución:**
+  - Hiperparámetros elegidos con el **F1 macro de validación** (misma métrica de la Figura 1). Sin `class_weight`, para no mezclar su efecto con el del balanceo de cada caso.
+  - **SVM:** búsqueda por caso en 15 configuraciones (lineal C ∈ {0.01, 0.1, 1}; RBF C ∈ {0.1, 1, 10} × gamma ∈ {scale, 0.01, 0.1}; polinómico grado 2 C ∈ {0.1, 1, 10}); en empate gana el C menor. La búsqueda entrena sin probabilidades y el modelo final con `probability=True`. Elegidos: lineal C = 1 en los casos 1, 3, 5 y 7; lineal C = 0.1 en 4 y 8; RBF C = 10 gamma = scale en el 2; polinómico C = 1 en el 6.
+  - **Redes:** misma arquitectura en los 8 casos, elegida en el caso 8 entre 5 configuraciones: `[128, 64, 32]`, ReLU, BatchNormalization y Dropout 0.4 tras cada capa oculta, L2 1e-3, salida softmax de 4. Adam 1e-3, lotes de 64, hasta 200 épocas, EarlyStopping (val_loss, paciencia 15, restaura mejores pesos) y ReduceLROnPlateau (factor 0.5, paciencia 5). Sin ModelCheckpoint porque `restore_best_weights` ya conserva la mejor época. Determinismo con `fijar_semillas()` antes de cada red, semilla en el Dropout y `enable_op_determinism()`.
+- **Nombres globales nuevos:** `REJILLA_SVM`, `BUSQUEDA_SVM`, `MODELOS_SVM`, `PCA_SVM`, `CONFIGS_RED`, `TABLA_CONFIGS_RED`, `HISTORIAS_CONFIGS_RED`, `CONFIG_RED_FINAL`, `MODELOS_RED`, `HISTORIAS_RED`, `TABLA_BLOQUE3`, `PROMEDIOS_BLOQUE3`; funciones `evaluar_config_svm`, `buscar_svm`, `entrenar_svm_final`, `resumen_eleccion_svm`, `graficar_busqueda_svm`, `regiones_decision_svm`, `construir_red`, `callbacks_red`, `entrenar_red`, `comparar_configs_red`, `graficar_curvas_configs`, `graficar_curvas_red`, `efecto_batch_norm`, `resumen_bloque3`. También se importan `tf`, `PCA`, `ListedColormap`, `Parallel` y `delayed`.
+- **Tiempo de ejecución:** ~6 min (SVM ~2 min; redes ~4 min: comparación de configuraciones ~1 min, 8 casos ~2 min y prueba sin BatchNormalization ~45 s).
 - **Hallazgos:**
+  - **F1 macro de prueba:** SVM 0.5135–0.6052 (mejor caso 2); red 0.4980–0.6385 (mejor caso 2, casi igual el 4 con 0.6378). Caso 8: SVM 0.5944 y red 0.6216.
+  - **El balanceo es el factor dominante:** F1 medio de 0.5157 a 0.5916 (SVM) y de 0.5161 a 0.6180 (red). En los desbalanceados el accuracy es 0.587–0.606, con recall de Nivel 3 de 0.93–0.94 y de Nivel 4 de 0.46–0.50 en el caso 7.
+  - **El escalado casi no cambia el F1 final** de nuestros dos modelos (SVM 0.5587 sin ED y 0.5486 con ED; red 0.5700 y 0.5641), porque la búsqueda elige configuraciones poco sensibles a la escala (lineal o gamma = scale) y BatchNormalization la compensa en la red. Con hiperparámetros fijos sí importa: RBF con gamma = 0.1 cae a 0.31–0.42 de F1 de validación en el caso 4 (0.58–0.60 en el 8), y la red sin BatchNormalization baja de 0.6344 a 0.5746 en el caso 4. Sin escalar, el entrenamiento de la red es inestable (desv. est. del accuracy de validación 0.042–0.068 frente a 0.009–0.012). **Esto es importante para el análisis de la sección 7:** se espera que el escalado no muestre gran diferencia en SVM y redes en la gráfica de F1 por normalización.
+  - **Outliers:** efecto mínimo (SVM 0.5526 → 0.5547; red 0.5612 → 0.5728).
+  - **Kernel:** el lineal gana en 6 de 8 casos; donde gana otro, la ventaja es menor de 0.01. La frontera entre niveles es casi lineal.
+  - Los errores son casi todos entre niveles vecinos (caso 8: 14 de 339 en SVM y 8 de 301 en la red saltan más de un nivel).
 - **Dudas o cambios solicitados:**
-
+  - **Bloque 1:** la tabla de la sección 4.8 dice que la red "funciona con una red pequeña (1–2 capas ocultas)". La arquitectura elegida tiene 3 capas ocultas (`[128, 64, 32]`), porque fue la de mayor F1 de validación y menor sobreajuste en el caso 8; la de 1 capa (`[32]`) quedó cerca (0.6190 frente a 0.6238). Sugerimos ajustar esa frase o dejarla como referencia general.
 #### Bloque 4 – K-Means y DBSCAN
 - **Estado:** _sin iniciar_
 - **Decisiones:**
