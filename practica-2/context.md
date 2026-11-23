@@ -294,6 +294,17 @@ El notebook se dirige al **profesor**: no enseña, **justifica**. Todo el notebo
 
 (Las cifras de los ejemplos 2 y 4 son ilustrativas: usen las suyas.)
 
+### 7.2 Referencias: material del curso y práctica de ejemplo
+En la medida de lo posible, **las implementaciones deben parecerse a las vistas en clase**. El profesor evalúa contra ese material y en la sustentación es más fácil defender código que sigue el mismo enfoque.
+
+| Ruta | Qué contiene | Cómo usarlo |
+|---|---|---|
+| `documentos/archivos-curso/*.ipynb` | Notebooks de clase: árboles (`5_01`), KNN (`5_02`), SVM lineal y no lineal (`5_03`, `5_04`), métricas y curvas (`6-01`, `6-02`), K-Means (`6-03`), DBSCAN (`6-04`), redes neuronales y Keras (`7-01` a `7-06`), CNN (`9-*`), LLM (`10-*`) | **Modelo de código.** Usar las mismas librerías, clases, parámetros y estilo de gráficas que estos notebooks. Revisar el notebook del tema antes de implementar |
+| `documentos/archivos-curso/*.pdf` | Diapositivas con la teoría de cada tema | Para justificar decisiones con los conceptos y la terminología del curso |
+| `documentos/Práctica2___Grupo___02___Equipo_06.pdf` | Práctica 2 ya hecha por otro equipo (ejemplo) | **Inspiración** de estructura, gráficas y tipo de análisis esperado. No copiar texto ni cifras: nuestros datos y resultados son otros |
+
+**Regla para desviarse:** si existe una implementación distinta que sea claramente **mejor** que la del curso o la del ejemplo (más correcta, más eficiente o con mejor justificación), **no la apliquen directamente: pregúntenle primero al equipo / al usuario**, explicando la diferencia y por qué es mejor. Si la IA detecta una alternativa así, debe proponerla y esperar confirmación antes de implementarla.
+
 ---
 
 ## 8. Decisiones ya tomadas (no las cambien; sirven para la sustentación)
@@ -387,6 +398,6 @@ Si encuentran una inconsistencia, corríjanla en su sección o avísenle al resp
 
 ## 11. Instrucción sugerida para tu IA
 
-> Estoy trabajando en el bloque X de un proyecto de aprendizaje de máquinas en un notebook de Jupyter. Te adjunto `context.md` (el contrato del equipo), `Enunciado.md`, `bloques.md` y `practica-2.ipynb`. Las secciones 0 a 4.10 ya están cerradas: no las modifiques ni vuelvas a preprocesar datos. Usa `casos[1..8]`, `SEMILLA` y las funciones del contrato (`registrar_resultado`, `predecir_demo`, `reporte_por_clase`, `graficar_matriz_confusion`, `registrar_clustering`), respetando las reglas de uso de los conjuntos y de código de `context.md`. Escribe mi sección como funciones reutilizables con docstrings en español. Escribe el markdown siguiendo exactamente la sección 7.1 de `context.md`: dirigido al profesor, en primera persona del plural, conciso, justificando cada decisión con cifras reales del notebook y nombrando las alternativas descartadas, sin explicar teoría del curso. Usa como modelo de tono el markdown de las secciones 0–4.10. Antes de escribir código, dime qué vas a hacer en cada paso.
+> Estoy trabajando en el bloque X de un proyecto de aprendizaje de máquinas en un notebook de Jupyter. Te adjunto `context.md` (el contrato del equipo), `Enunciado.md`, `bloques.md` y `practica-2.ipynb`. Las secciones 0 a 4.10 ya están cerradas: no las modifiques ni vuelvas a preprocesar datos. Usa `casos[1..8]`, `SEMILLA` y las funciones del contrato (`registrar_resultado`, `predecir_demo`, `reporte_por_clase`, `graficar_matriz_confusion`, `registrar_clustering`), respetando las reglas de uso de los conjuntos y de código de `context.md`. Escribe mi sección como funciones reutilizables con docstrings en español. Escribe el markdown siguiendo exactamente la sección 7.1 de `context.md`: dirigido al profesor, en primera persona del plural, conciso, justificando cada decisión con cifras reales del notebook y nombrando las alternativas descartadas, sin explicar teoría del curso. Usa como modelo de tono el markdown de las secciones 0–4.10. Sigue la sección 7.2: implementa de forma parecida a los notebooks y PDFs de `documentos/archivos-curso/` e inspírate en la práctica de ejemplo `documentos/Práctica2___Grupo___02___Equipo_06.pdf`; si ves una implementación diferente y mejor, pregúntame antes de usarla. Antes de escribir código, dime qué vas a hacer en cada paso.
 >
 > Cada vez que terminemos una parte, actualiza mi subsección en la sección 10.3 de `context.md` (estado, decisiones con su justificación, nombres globales nuevos, tiempo de ejecución, hallazgos y dudas), sin tocar las de los demás bloques. Antes de actualizarla, haz la verificación de consistencia de la sección 10.2 y dime qué encontraste.
