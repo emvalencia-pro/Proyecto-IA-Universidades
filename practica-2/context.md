@@ -379,11 +379,48 @@ Si encuentran una inconsistencia, corríjanla en su sección o avísenle al resp
 - **Dudas o cambios solicitados:**
 
 #### Bloque 3 – SVM y redes neuronales
-- **Estado:** _sin iniciar_
+- **Estado:** sección 6 terminada.
+  - SVM y Redes Neuronales entrenados y registrados en los **8 casos** con `registrar_resultado`, y `predecir_demo` en los 8 casos.
+  - Matriz de confusión y reporte por clase del caso 8 de ambos modelos.
+  - Regiones de decisión del SVM con PCA en los 8 casos.
+  - Curvas de pérdida y accuracy de la red en los 8 casos.
+  - El notebook completo corre de principio a fin sin errores en un kernel reiniciado y da las mismas cifras que la ejecución interactiva.
+- **Herramientas:** solo las de los notebooks de `documentos/archivos-curso/` (`5_03`, `5_04`, `6-01`, `7-03` a `7-06`): `SVC` lineal y RBF, `PCA`, `meshgrid`/`contourf`, `tf.keras.Sequential`, `Dense`, `Dropout`, `regularizers.l2`, Adam/SGD y el callback `EarlyStopping`. **No se usan** BatchNormalization, ReduceLROnPlateau, ModelCheckpoint, kernel polinómico ni `joblib`, porque no aparecen en el material del curso.
 - **Decisiones:**
+  - Hiperparámetros elegidos con el **F1 macro de validación** (misma métrica de la Figura 1). Sin `class_weight`, para no mezclar su efecto con el del balanceo de cada caso.
+  - **SVM:**
+    - Búsqueda por caso en 12 configuraciones: lineal con C ∈ {0.01, 0.1, 1} y RBF con C ∈ {0.1, 1, 10} × gamma ∈ {scale, 0.01, 0.1}. En empate gana el C menor.
+    - Elegidos con el conjunto de validación, como en los experimentos del notebook `5_03`.
+    - La búsqueda entrena sin probabilidades; el modelo final usa `probability=True`.
+    - Elegidos: lineal C = 1 en los casos 1, 3, 5 y 7; lineal C = 0.1 en 4, 6 y 8; RBF C = 10, gamma = scale en el 2.
+  - **Regiones de decisión del SVM:** procedimiento del notebook `7-04`. La malla 2D de PCA se lleva a las 65 columnas con `inverse_transform` y se clasifica con el **modelo registrado**.
+  - **Redes:**
+    - Configuración en el caso 8, cambiando un aspecto a la vez (activación → optimizador → regularización → arquitectura). Se conserva la opción vigente si la mejora es menor de 0.01 de F1.
+    - Red final, la misma en los 8 casos: `Dense(64, ReLU) → Dropout(0.3) → Dense(32, ReLU) → Dropout(0.3) → Dense(4, softmax)`, Adam lr = 0.001, lotes de 32, hasta 150 épocas.
+    - EarlyStopping sobre `val_loss` con paciencia 10 y `restore_best_weights=True`.
+    - Descartadas: tanh (+0.003, no concluyente), sigmoid, Adam lr = 0.01 (sobreajusta desde la época 3), SGD lr = 0.1 (F1 0.48), L2 0.01 sola o con Dropout (menor F1), y las arquitecturas `[32]` y `[128, 64]`.
+    - Determinismo con `fijar_semillas()` antes de cada red; no hizo falta `enable_op_determinism`.
 - **Nombres globales nuevos:**
-- **Tiempo de ejecución:**
+  - Variables: `REJILLA_SVM`, `BUSQUEDA_SVM`, `MODELOS_SVM`, `PCA_SVM`, `CASO_CONFIGURACION`, `CONFIG_BASE_RED`, `CONFIG_RED`, `COMPARACION_RED`, `VARIANTES_ACTIVACION`, `VARIANTES_OPTIMIZADOR`, `VARIANTES_REGULARIZACION`, `VARIANTES_ARQUITECTURA`, `CONFIG_RED_FINAL`, `MODELOS_RED`, `HISTORIAS_RED`, `TABLA_BLOQUE3`, `PROMEDIOS_BLOQUE3`.
+  - Funciones: `tabla_busqueda_svm`, `entrenar_svm_final`, `resumen_eleccion_svm`, `graficar_sensibilidad_svm`, `regiones_decision_svm`, `construir_red`, `entrenar_red`, `comparar_configs_red`, `elegir_variante`, `graficar_curvas_variantes`, `graficar_curvas_red`, `resumen_entrenamiento_red`, `verificar_paciencia`, `resumen_bloque3`.
+  - Se importan `time`, `SVC`, `PCA`, `ListedColormap` y `tf`.
+- **Tiempo de ejecución:** ~9 min.
+  - SVM: ~5 min (búsqueda + modelos finales ~4.7 min; regiones de decisión ~20 s).
+  - Redes: ~4 min (configuración ~2.2 min; 8 casos ~1.3 min; verificación de paciencia ~40 s).
 - **Hallazgos:**
+  - **F1 macro de prueba:**
+    - SVM: 0.5135–0.6052 (mejor caso 2).
+    - Red: 0.3069–0.5873 (mejor caso 8).
+    - Caso 8: SVM 0.5944 y red 0.5873 (equivalentes). La red detecta más Nivel 1 (recall 0.711 frente a 0.667) y el SVM más Nivel 4 (0.739 frente a 0.652).
+  - **El balanceo es el factor dominante:** el F1 medio pasa de 0.5157 a 0.5948 en el SVM y de 0.4056 a 0.5808 en la red.
+  - **El escalado afecta a la red y no al SVM** (SVM 0.5587 sin ED y 0.5518 con ED; red 0.4419 y 0.5445).
+    - En la red, la diferencia viene de los casos 1 y 3 (sin escalar y desbalanceados): no asignan ningún registro de prueba a Nivel 2 ni a Nivel 4 (F1 0.31). Con paciencia 30 tampoco aprenden Nivel 2.
+    - Con balanceo, la red sin escalar sí funciona (casos 2 y 4: 0.5676 y 0.5847).
+    - En el SVM, el escalado solo importa con gamma fijo: con RBF y gamma = 0.1, el F1 de validación cae a 0.31–0.42 en el caso 4, frente a 0.58–0.60 en el 8.
+    - **Importante para la sección 7:** la gráfica de F1 por normalización mostrará el efecto en la red, pero no en el SVM.
+  - **Outliers:** sin efecto consistente (SVM 0.5558 → 0.5547; red 0.4816 → 0.5048, diferencia que viene solo del par de casos 5 y 7).
+  - **Kernel:** el lineal gana en 7 de 8 casos; la frontera entre niveles es casi lineal. Las regiones de decisión son franjas ordenadas de Nivel 1 a Nivel 4 a lo largo de PC1 (puntajes).
+  - Los errores son casi todos entre niveles vecinos (caso 8: 14 de 339 en el SVM y 16 de 341 en la red saltan más de un nivel).
 - **Dudas o cambios solicitados:**
 
 #### Bloque 4 – K-Means y DBSCAN
