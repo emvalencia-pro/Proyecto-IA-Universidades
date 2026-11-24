@@ -331,7 +331,9 @@ Cada sección del notebook tiene la justificación completa. **Todos deben enten
 
 ## 9. Pendiente
 
-- **"Evaluación de 3 datos de prueba":** la interpretamos como mostrar la predicción de 3 registros fijos de prueba (`predecir_demo`). Falta confirmarlo con el profesor (Nota 3 del enunciado). Si cambia, solo hay que cambiar `INDICES_DEMO` / `predecir_demo` en el bloque 1.
+- **"Evaluación de 3 datos de prueba": resuelto sin consultar al profesor, cubriendo las dos lecturas en ambos módulos.**
+  - Registros reales de la prueba (`INDICES_DEMO`, `predecir_demo`): secciones 5, 6 y 8.3.
+  - 3 estudiantes nuevos construidos a mano (`ESTUDIANTES_HIPOTETICOS`, `obtener_datos_hipoteticos`), como los "nuevos_datos" del notebook `5_02`, el "nuevo vino" del `6-03` y la "nueva flor" del `6-04`: secciones 7.5 (supervisado) y 8.3.1 (no supervisado). Se definen una sola vez en la sección 4.9.
 
 ---
 
@@ -369,26 +371,27 @@ Si encuentran una inconsistencia, corríjanla en su sección o avísenle al resp
 
 ### 10.3 Registro por bloque
 
-> **Aviso del bloque 1 (23/11/2026):** el notebook se volvió a ejecutar completo en el entorno de referencia de la sección 2, y el markdown de las secciones 5, 6 y 8 se actualizó con las cifras nuevas. Los "Hallazgos" y algunas "Decisiones" de los bloques 2, 3 y 4 que siguen más abajo citan la ejecución anterior (como root, probablemente en Colab). Mientras cada responsable no actualice su subsección, la fuente de verdad es el markdown del notebook. Los cambios principales están en la subsección del bloque 1.
-
 #### Bloque 1 – Datos, preprocesamiento y evaluación comparativa
 - **Estado:** secciones 0–4.10 y sección 7 terminadas.
   - El notebook completo (secciones 0 a 8) corre de principio a fin sin errores en un kernel nuevo, en ~7.6 min en el entorno de referencia.
   - Dos ejecuciones completas dan exactamente las mismas salidas en las 70 celdas de código previas a la sección 7.
+- **Presentación del notebook:** se quitaron las referencias internas al equipo que vería el profesor ("(bloque X)" en los títulos, "Resumen del bloque N", "contrato"). Los títulos ahora usan el nombre del contenido (por ejemplo, "5.3 Resumen de árboles y KNN"). Se agregó el encabezado "# Módulo 1 – Aprendizaje supervisado", y la instalación ya no muestra el aviso de versión de pip. Los nombres de funciones y variables (`resumen_bloque2`, `TABLA_BLOQUE3`…) no cambiaron.
 - **Sección 0:** nueva celda `versiones_librerias()`, que imprime el sistema, Python y las versiones de las librerías. La nota de reproducibilidad de la sección 0 aclara que otro entorno puede cambiar las cifras de los casos balanceados y de las redes. No se fijaron versiones en `%pip`: TensorFlow 2.22.0rc1 para macOS arm64 no garantiza los mismos resultados en Linux.
 - **Sección 7 (evaluación comparativa):**
   - 7.1: tabla de la Figura 1 (`tabla_figura1()`) y el mejor algoritmo de cada caso.
   - 7.2: las 4 gráficas de F1 (máximo por algoritmo; medio por normalización, por outliers y por balanceo), cada una con su análisis. La 7.2.4 explica por qué el accuracy engaña, con el recall por clase, las clases que nunca se predicen y la regla trivial "siempre Nivel 3".
   - 7.3: curvas ROC y Precision-Recall del caso 8, micro-promediadas (One-vs-Rest), con las funciones del notebook `6-02` (`roc_curve`, `precision_recall_curve`, `auc`, `average_precision_score`), y tabla de AUC y AP por clase.
   - 7.4: costo de los errores en un uso de alerta temprana, matrices de confusión del caso 8 y recall de Nivel 1 en los 8 casos.
-  - 7.5: conclusiones del módulo supervisado.
+  - 7.5: predicción de los 3 estudiantes hipotéticos con los 4 algoritmos en los 8 casos (la otra lectura de "3 datos de prueba").
+  - 7.6: conclusiones del módulo supervisado.
 - **Decisiones:**
   - **Curvas micro-promediadas** (una curva por algoritmo, como en la práctica de ejemplo), complementadas con AUC y AP por clase. El micro-promedio lo dominan Nivel 3 y Nivel 2, y ocultaría la diferencia entre la red y el SVM en Nivel 4 (AP de 0.633 frente a 0.406).
   - **Métrica priorizada: recall de Nivel 1, sin sacrificar el F1 macro.** El falso negativo de Nivel 1 es el error más costoso en la alerta temprana. El recall solo no basta: la red del caso 3 llega a 0.939 asignando Nivel 1 a 408 de 953 estudiantes.
   - En la sección 7 no se ajusta nada con la prueba. La comparación de la 7.4 se presenta como análisis, no como selección de modelo.
 - **Nombres globales nuevos:**
-  - Variables: `FIGURA1`, `F1_CASOS`, `ETIQUETAS_FACTOR`, `CASO_CURVAS`, `CURVAS_CASO8`, `AREAS_CASO8`.
-  - Funciones: `versiones_librerias`, `f1_por_caso`, `mejor_por_caso`, `graficar_f1_maximo`, `f1_medio_por_factor`, `graficar_f1_por_factor`, `recall_por_clase`, `accuracy_frente_a_f1`, `clases_no_predichas`, `referencia_clase_mayoritaria`, `binarizar`, `curvas_roc_pr`, `graficar_roc_pr`, `areas_por_clase`, `errores_por_clase`, `recall_clase_por_caso`.
+  - Variables: `FIGURA1`, `F1_CASOS`, `ETIQUETAS_FACTOR`, `CASO_CURVAS`, `CURVAS_CASO8`, `AREAS_CASO8`, `MODELOS_SUPERVISADOS`, `PREDICCIONES_HIPOTETICOS`.
+  - `ESTUDIANTES_HIPOTETICOS` pasó de la sección 8.3.1 a la 4.9, junto con la nueva `obtener_datos_hipoteticos(caso)`, para que la usen los dos módulos. En la 8.3.1, `preparar_hipoteticos(k)` ahora la reutiliza; los datos y las salidas no cambian.
+  - Funciones: `versiones_librerias`, `f1_por_caso`, `mejor_por_caso`, `graficar_f1_maximo`, `f1_medio_por_factor`, `graficar_f1_por_factor`, `recall_por_clase`, `accuracy_frente_a_f1`, `clases_no_predichas`, `referencia_clase_mayoritaria`, `binarizar`, `curvas_roc_pr`, `graficar_roc_pr`, `areas_por_clase`, `errores_por_clase`, `recall_clase_por_caso`, `obtener_datos_hipoteticos`, `predecir_hipoteticos`, `resumen_hipoteticos`.
   - Se importan `roc_curve`, `precision_recall_curve`, `auc` y `average_precision_score`.
 - **Tiempo de ejecución de la sección 7:** unos segundos (no entrena modelos).
 - **Hallazgos (entorno de referencia):**
@@ -397,7 +400,7 @@ Si encuentran una inconsistencia, corríjanla en su sección o avísenle al resp
   - **Escalado:** nulo en el árbol, +0.125 en la red, −0.079 en KNN y −0.013 en el SVM (solo en los casos con RBF).
   - **Outliers:** ningún algoritmo cambia su F1 medio en 0.02 o más.
   - **Caso 8:** AUC/AP micro de 0.904/0.727 en la red, 0.894/0.695 en el SVM, 0.809/0.537 en el árbol y 0.657/0.364 en KNN (k = 1, un solo umbral).
-- **Cambios respecto de la ejecución anterior, que afectan a otros bloques** (el markdown del notebook ya está actualizado; falta actualizar sus subsecciones de este archivo):
+- **Cambios respecto de la ejecución anterior, que afectan a otros bloques** (el markdown del notebook y las subsecciones de los bloques 2, 3 y 4 ya están actualizados):
   - Bloque 2:
     - `max_depth` = 10 en los casos 4 y 8 (antes 6), y estos dos casos ya no son idénticos (F1 0.5546 y 0.5533).
     - k = 17, 1, 47, 1, 37, 1, 47 y 1 (el caso 8 pasa de 11 a 1).
@@ -407,53 +410,64 @@ Si encuentran una inconsistencia, corríjanla en su sección o avísenle al resp
     - Red final: `Dense(64, tanh, L2 0.01) → Dense(32, tanh, L2 0.01) → Dense(4, softmax)`, con Adam lr = 0.01. Antes era ReLU con Dropout 0.3 y lr = 0.001.
     - La red del caso 8 supera al SVM (F1 0.6357 frente a 0.5876).
   - Bloque 4: solo cambian algunos decimales (silhouette de 0.2085 a 0.2086, inercias de los casos balanceados y el ruido de DBSCAN complementario del caso 8: 82 %).
-- **Pendiente:** confirmar con el profesor la interpretación de "3 datos de prueba".
+- **Pendiente:** ninguno del notebook. "3 datos de prueba" quedó cubierto en sus dos lecturas (sección 9).
 
 #### Bloque 2 – Árboles y KNN
+> Actualizado por el bloque 1 el 23/11/2026 con la ejecución en el entorno de referencia (sección 2). Las cifras y algunas decisiones automáticas cambiaron respecto de la ejecución anterior; los cambios se marcan con **(cambió)**.
+
 - **Estado:** sección 5 terminada.
   - Árboles y KNN entrenados y registrados en los **8 casos** con `registrar_resultado`, y `predecir_demo` en los 8 casos.
   - Árboles: curvas de `max_depth` contra accuracy (entrenamiento y validación) con Gini y entropía, tabla Gini frente a entropía, importancia de características, gráfico del árbol con Gini e interpretación de reglas.
   - KNN: k contra accuracy con validación cruzada de 5 folds y gráfico de vecinos con PCA, en los 8 casos.
   - Matriz de confusión y reporte por clase del caso 8 de ambos modelos.
-  - El notebook completo corre de principio a fin sin errores en un kernel reiniciado (secciones 0 a 6) y da las mismas cifras de la sección 6 que registró el bloque 3.
+  - El notebook completo corre de principio a fin sin errores en el entorno de referencia, y dos ejecuciones dan las mismas cifras.
 - **Herramientas:** solo las de las diapositivas y notebooks de `documentos/archivos-curso/`: `DecisionTreeClassifier`, `plot_tree`, `feature_importances_` (`5_01`), `KNeighborsClassifier` (`5_02`), `StratifiedKFold` y `cross_val_score` (`5_03`, `5_04`), `PCA` (`6-03`, `7-04`) y `kneighbors` (`6-04`). No se importa ninguna librería nueva.
 - **Decisiones:**
   - **Árboles:** `max_depth` de 1 a 15, elegido con el **accuracy de validación** (notebook `5_01` y diapositiva 5-02); en empate, la menor profundidad. Se registra siempre el árbol con **Gini**, que es el que el enunciado pide graficar; la entropía solo se compara. No se usa `ccp_alpha` (el enunciado pide `max_depth` y/o `ccp_alpha`).
-    - Profundidades elegidas: 3 en los casos 1, 3, 5 y 7; 5 en los casos 2 y 6; 6 en los casos 4 y 8.
+    - Profundidades elegidas: 3 en los casos 1, 3, 5 y 7; 5 en los casos 2 y 6; **10 en los casos 4 y 8 (cambió: antes 6)**.
   - **KNN:** k impares de 1 a 51, elegido con el **accuracy promedio de la validación cruzada de 5 folds** sobre el entrenamiento, como dicen el enunciado y la diapositiva 5-03; en empate, el menor. Distancia euclidiana y voto uniforme (`5_02`). La validación cruzada usa el caso tal como viene (no se reescala por fold).
-    - k elegidos: 51, 1, 49, 1, 37, 1, 47 y 11 en los casos 1 a 8.
+    - k elegidos: **17, 1, 47, 1, 37, 1, 47 y 1** en los casos 1 a 8 **(cambió: antes 51, 1, 49, 1, 37, 1, 47 y 11)**.
   - **Gráfico de vecinos:** PCA ajustado con el entrenamiento de cada caso, solo para dibujar; los vecinos de los 3 registros de demostración los calcula el modelo registrado con `kneighbors` en las 65 columnas.
   - Sin `class_weight`, igual que el bloque 3.
+- **Cómo defender los cambios en la sustentación:**
+  - **Profundidad 10 en los casos 4 y 8.** Es la que da el mayor accuracy de validación, el criterio del notebook `5_01`. La curva de validación es casi plana entre las profundidades 4 y 10 (0.612–0.637), y la 10 supera a la 6 por solo 0.001.
+    - Pregunta probable: "¿no sobreajusta?" A profundidad 10, el accuracy de entrenamiento es 0.855 y el de validación 0.637.
+    - Respuesta: aplicamos el criterio del curso sin tolerancia. Con una tolerancia de 0.01 como la de la red (sección 6.2.1), la elegida sería la profundidad 6.
+  - **Los casos 4 y 8 ya no son idénticos** (F1 0.5546 y 0.5533). Las curvas de Gini de *k* y *k+4* difieren en 0.002 como máximo. Interpretamos que son empates entre umbrales equivalentes, y a profundidad 10 bastan para cambiar el árbol.
+  - **k = 1 en el caso 8.** Pasa lo mismo que en los otros casos con SMOTENC: la validación cruzada favorece k = 1 por los registros sintéticos. En el caso 8, k = 1 empata prácticamente con k ≥ 9 (0.728). Es un ejemplo de "por qué el accuracy engaña", y está documentado en la sección 5.2.1.
 - **Nombres globales nuevos:**
   - Variables: `PROFUNDIDADES_ARBOL`, `CRITERIOS_ARBOL`, `CURVAS_ARBOL`, `MODELOS_ARBOL`, `importancias`, `top3`, `VALORES_K`, `FOLDS_KNN`, `CURVAS_KNN`, `MODELOS_KNN`, `VOTOS_KNN`, `TABLA_BLOQUE2`, `PROMEDIOS_BLOQUE2`.
   - Funciones: `curva_profundidad`, `mejor_profundidad`, `graficar_profundidad`, `comparar_criterios`, `graficar_importancias`, `graficar_arbol`, `curva_k`, `mejor_k`, `graficar_curvas_k`, `resumen_eleccion_k`, `graficar_vecinos`, `resumen_bloque2`.
   - Se importan `DecisionTreeClassifier`, `plot_tree`, `KNeighborsClassifier`, `StratifiedKFold`, `cross_val_score` y `PCA`.
-- **Tiempo de ejecución:** ~1 min (árboles ~15 s con los gráficos; KNN ~45 s, casi todo en la validación cruzada). El notebook completo (secciones 0 a 6) tarda ~14 min en una máquina de 2 núcleos sin GPU.
+- **Tiempo de ejecución:** ~1 min (árboles ~15 s con los gráficos; KNN ~45 s, casi todo en la validación cruzada). El notebook completo (secciones 0 a 8) tarda ~7.6 min en el entorno de referencia.
 - **Hallazgos:**
   - **F1 macro de prueba:**
-    - Árboles: 0.5306–0.5863 (mejor en los casos 4 y 8). Los casos k y k+4 dan métricas idénticas.
-    - KNN: 0.4291–0.5253 (mejor en el caso 2).
-    - Caso 8: árbol 0.5863, KNN 0.4889 (SVM 0.5944 y red 0.5873, del bloque 3).
+    - Árboles: 0.5306–0.5803 (mejor en los casos 2 y 6). Los casos 1 y 5, 2 y 6, y 3 y 7 dan métricas idénticas; los casos 4 y 8 difieren en 0.0013.
+    - KNN: 0.4291–0.5274 (mejor en el caso 2).
+    - Caso 8: árbol 0.5533 y KNN 0.4335 (SVM 0.5876 y red 0.6357, del bloque 3).
   - **El árbol supera a KNN en los 8 casos.**
-  - **Escalado:** no cambia nada en el árbol (0.5571 en ambos grupos) y **empeora a KNN** (0.5135 sin escalar frente a 0.4489 con escalado). Sin escalar, la distancia la dominan los puntajes, que son las variables más predictivas; con StandardScaler pesan más las 55 dummies, que el árbol considera casi irrelevantes.
-    - **Importante para la sección 7:** en la gráfica de F1 por normalización, KNN es el único algoritmo con efecto negativo del escalado.
-  - **Balanceo:** sube el F1 medio del árbol de 0.5338 a 0.5804 y el de KNN de 0.4688 a 0.4936.
-  - **Outliers:** sin efecto en ninguno de los dos (diferencias ≤ 0.003).
+  - **Escalado:** no cambia el árbol (0.5506 frente a 0.5503) y **empeora a KNN** (0.5140 sin escalar frente a 0.4354 con escalado). Sin escalar, la distancia la dominan los puntajes, que son las variables más predictivas; con StandardScaler pesan más las 55 dummies, que el árbol considera casi irrelevantes.
+    - En la sección 7.2.2, KNN es el algoritmo con el mayor efecto negativo del escalado. El SVM también baja un poco (−0.013), pero solo en los casos donde usa RBF.
+  - **Balanceo:** sube el F1 medio del árbol de 0.5338 a 0.5671 y el de KNN de 0.4675 a 0.4819.
+  - **Outliers:** sin efecto apreciable en el promedio (árbol −0.016, KNN −0.015). Las caídas mayores por par coinciden con un cambio del hiperparámetro elegido: profundidad de 5 a 10 en el árbol (pares 2 → 4 y 6 → 8) y k de 17 a 47 en KNN (par 1 → 3).
   - **La validación cruzada de KNN es engañosa en dos situaciones.**
-    - Con SMOTENC (casos 2, 4 y 6) elige k = 1 (accuracy CV 0.817–0.828, frente a 0.521–0.591 en validación), porque los registros sintéticos tienen a su "origen" en otro fold.
-    - En los casos desbalanceados (1, 3, 5 y 7) elige k = 37–51, porque los folds tienen 70 % de Nivel 3.
-    - Con el k elegido, el F1 de validación queda entre 0.013 y 0.065 por debajo del mejor k posible. Se dejó el criterio del enunciado y se documentó como ejemplo de "por qué el accuracy engaña".
-  - **Importancia de características:** `PUNT_C_NATURALES` concentra entre 0.749 y 0.840 de la importancia del árbol, seguida por `PUNT_LECTURA_CRITICA`. La raíz del árbol del caso 1 es ciencias ≤ 45.5, y Nivel 4 solo se predice con ciencias > 69.5.
+    - Con SMOTENC (casos 2, 4, 6 y 8) elige k = 1: el accuracy de la validación cruzada es de 0.816–0.828 en los casos 2 y 4, frente a 0.515–0.588 en validación, porque los registros sintéticos tienen a su "origen" en otro fold.
+    - En los casos desbalanceados (1, 3, 5 y 7) elige k = 17–47, porque los folds tienen 70 % de Nivel 3.
+    - Con el k elegido, el F1 de validación queda entre 0.008 y 0.065 por debajo del mejor k posible. Se dejó el criterio del enunciado y se documentó como ejemplo de "por qué el accuracy engaña".
+  - **Importancia de características:** `PUNT_C_NATURALES` concentra entre 0.584 y 0.840 de la importancia del árbol, seguida por `PUNT_LECTURA_CRITICA`. La raíz del árbol del caso 1 es ciencias ≤ 45.5, y Nivel 4 solo se predice con ciencias > 69.5.
   - El registro de demostración de Nivel 4 se predice como Nivel 3 con los dos modelos en los 8 casos, igual que con SVM y la red.
 - **Dudas o cambios solicitados (para el bloque 1):**
-  - **Versiones de las librerías:** la celda `%pip` no fija versiones. Al ejecutar con scikit-learn 1.9.1 e imbalanced-learn 0.14.2, los valores escalados de los registros de demostración del caso 8 difieren desde el cuarto decimal de los guardados antes (por ejemplo, −1.191927 frente a −1.192134), aunque los conteos de registros, clases y outliers son idénticos y las métricas de la sección 6 no cambian. Conviene fijar versiones para que la ejecución del profesor dé las mismas cifras.
+  - **Versiones de las librerías:** resuelto por el bloque 1. La sección 0 imprime las versiones del entorno de referencia, y la sección 2 de este archivo explica qué cambia en otro entorno. No se fijaron versiones en `%pip`.
+
 #### Bloque 3 – SVM y redes neuronales
+> Actualizado por el bloque 1 el 23/11/2026 con la ejecución en el entorno de referencia (sección 2). La búsqueda y la configuración son automáticas, y en este entorno eligieron otras opciones; los cambios se marcan con **(cambió)**.
+
 - **Estado:** sección 6 terminada.
   - SVM y Redes Neuronales entrenados y registrados en los **8 casos** con `registrar_resultado`, y `predecir_demo` en los 8 casos.
   - Matriz de confusión y reporte por clase del caso 8 de ambos modelos.
   - Regiones de decisión del SVM con PCA en los 8 casos.
   - Curvas de pérdida y accuracy de la red en los 8 casos.
-  - El notebook completo corre de principio a fin sin errores en un kernel reiniciado y da las mismas cifras que la ejecución interactiva.
+  - El notebook completo corre de principio a fin sin errores en el entorno de referencia, y dos ejecuciones dan las mismas cifras.
 - **Herramientas:** solo las de los notebooks de `documentos/archivos-curso/` (`5_03`, `5_04`, `6-01`, `7-03` a `7-06`): `SVC` lineal y RBF, `PCA`, `meshgrid`/`contourf`, `tf.keras.Sequential`, `Dense`, `Dropout`, `regularizers.l2`, Adam/SGD y el callback `EarlyStopping`. **No se usan** BatchNormalization, ReduceLROnPlateau, ModelCheckpoint, kernel polinómico ni `joblib`, porque no aparecen en el material del curso.
 - **Decisiones:**
   - Hiperparámetros elegidos con el **F1 macro de validación** (misma métrica de la Figura 1). Sin `class_weight`, para no mezclar su efecto con el del balanceo de cada caso.
@@ -461,38 +475,48 @@ Si encuentran una inconsistencia, corríjanla en su sección o avísenle al resp
     - Búsqueda por caso en 12 configuraciones: lineal con C ∈ {0.01, 0.1, 1} y RBF con C ∈ {0.1, 1, 10} × gamma ∈ {scale, 0.01, 0.1}. En empate gana el C menor.
     - Elegidos con el conjunto de validación, como en los experimentos del notebook `5_03`.
     - La búsqueda entrena sin probabilidades; el modelo final usa `probability=True`.
-    - Elegidos: lineal C = 1 en los casos 1, 3, 5 y 7; lineal C = 0.1 en 4, 6 y 8; RBF C = 10, gamma = scale en el 2.
+    - Elegidos **(cambió)**: lineal C = 1 en los casos 1, 3, 5 y 7; RBF C = 10, gamma = scale en el 2; RBF C = 1, gamma = scale en el 4 y el 6; RBF C = 1, gamma = 0.1 en el 8. Antes: lineal en 7 de los 8 casos.
   - **Regiones de decisión del SVM:** procedimiento del notebook `7-04`. La malla 2D de PCA se lleva a las 65 columnas con `inverse_transform` y se clasifica con el **modelo registrado**.
   - **Redes:**
     - Configuración en el caso 8, cambiando un aspecto a la vez (activación → optimizador → regularización → arquitectura). Se conserva la opción vigente si la mejora es menor de 0.01 de F1.
-    - Red final, la misma en los 8 casos: `Dense(64, ReLU) → Dropout(0.3) → Dense(32, ReLU) → Dropout(0.3) → Dense(4, softmax)`, Adam lr = 0.001, lotes de 32, hasta 150 épocas.
+    - Red final **(cambió)**, la misma en los 8 casos: `Dense(64, tanh, L2 0.01) → Dense(32, tanh, L2 0.01) → Dense(4, softmax)`, Adam lr = 0.01, lotes de 32, hasta 150 épocas. Antes: ReLU, Dropout 0.3 y Adam lr = 0.001.
     - EarlyStopping sobre `val_loss` con paciencia 10 y `restore_best_weights=True`.
-    - Descartadas: tanh (+0.003, no concluyente), sigmoid, Adam lr = 0.01 (sobreajusta desde la época 3), SGD lr = 0.1 (F1 0.48), L2 0.01 sola o con Dropout (menor F1), y las arquitecturas `[32]` y `[128, 64]`.
+    - Descartadas (F1 de validación): ReLU (0.5766, frente a 0.5953 de tanh), sigmoid (0.5883), Adam lr = 0.001 (0.5953, frente a 0.6077 de lr = 0.01), SGD lr = 0.1 (0.5786), sin regularización (0.6077), Dropout 0.3 (0.5791), L2 + Dropout (0.6153), y las arquitecturas `[32]` (0.6092) y `[128, 64]` (0.6262, frente a 0.6295 de `[64, 32]`).
     - Determinismo con `fijar_semillas()` antes de cada red; no hizo falta `enable_op_determinism`.
+- **Cómo defender los cambios en la sustentación:**
+  - **RBF en los casos balanceados.** Gana al lineal por menos de 0.01 en los 4 casos (de 0.0005 a 0.0095). Con el umbral de 0.01 que usamos en la red, son equivalentes. La frontera sigue siendo casi lineal: las regiones de decisión son franjas ordenadas a lo largo de PC1.
+  - **Red con tanh, L2 y lr = 0.01.** Cada etapa elige la variante con mayor F1 de validación, y solo cambia si mejora en 0.01 o más.
+    - tanh supera a ReLU por 0.019.
+    - lr = 0.01 alcanza en la primera época una pérdida de validación (0.762) menor que la mejor de lr = 0.001 (0.843).
+    - L2 sube el F1 de 0.6077 a 0.6295 y reduce la brecha entre pérdidas (0.093 → 0.064), mientras que Dropout lo baja a 0.5791.
+  - Pregunta probable: "¿por qué la red se detiene tan pronto?" La mejor época está entre la 2 y la 12. Respuesta: con lr = 0.01 converge en pocas épocas, EarlyStopping restaura la mejor, y L2 evita que la pérdida de validación se dispare como sin regularización.
+  - **La red ahora es el mejor modelo del caso 8** (0.6357 frente a 0.5876 del SVM). Pero el SVM sigue siendo el más robusto (primero o segundo en 6 de los 8 casos) y el que más detecta Nivel 1. Por eso es el preferido para la alerta temprana (sección 7.4).
 - **Nombres globales nuevos:**
   - Variables: `REJILLA_SVM`, `BUSQUEDA_SVM`, `MODELOS_SVM`, `PCA_SVM`, `CASO_CONFIGURACION`, `CONFIG_BASE_RED`, `CONFIG_RED`, `COMPARACION_RED`, `VARIANTES_ACTIVACION`, `VARIANTES_OPTIMIZADOR`, `VARIANTES_REGULARIZACION`, `VARIANTES_ARQUITECTURA`, `CONFIG_RED_FINAL`, `MODELOS_RED`, `HISTORIAS_RED`, `TABLA_BLOQUE3`, `PROMEDIOS_BLOQUE3`.
   - Funciones: `tabla_busqueda_svm`, `entrenar_svm_final`, `resumen_eleccion_svm`, `graficar_sensibilidad_svm`, `regiones_decision_svm`, `construir_red`, `entrenar_red`, `comparar_configs_red`, `elegir_variante`, `graficar_curvas_variantes`, `graficar_curvas_red`, `resumen_entrenamiento_red`, `verificar_paciencia`, `resumen_bloque3`.
   - Se importan `time`, `SVC`, `PCA`, `ListedColormap` y `tf`.
-- **Tiempo de ejecución:** ~9 min.
-  - SVM: ~5 min (búsqueda + modelos finales ~4.7 min; regiones de decisión ~20 s).
-  - Redes: ~4 min (configuración ~2.2 min; 8 casos ~1.3 min; verificación de paciencia ~40 s).
+- **Tiempo de ejecución en el entorno de referencia:** ~5.5 min.
+  - SVM: ~4 min (búsqueda + modelos finales).
+  - Redes: ~1.5 min (configuración ~45 s; 8 casos ~22 s; el resto, verificación de paciencia y gráficas).
 - **Hallazgos:**
   - **F1 macro de prueba:**
-    - SVM: 0.5135–0.6052 (mejor caso 2).
-    - Red: 0.3069–0.5873 (mejor caso 8).
-    - Caso 8: SVM 0.5944 y red 0.5873 (equivalentes). La red detecta más Nivel 1 (recall 0.711 frente a 0.667) y el SVM más Nivel 4 (0.739 frente a 0.652).
-  - **El balanceo es el factor dominante:** el F1 medio pasa de 0.5157 a 0.5948 en el SVM y de 0.4056 a 0.5808 en la red.
-  - **El escalado afecta a la red y no al SVM** (SVM 0.5587 sin ED y 0.5518 con ED; red 0.4419 y 0.5445).
-    - En la red, la diferencia viene de los casos 1 y 3 (sin escalar y desbalanceados): no asignan ningún registro de prueba a Nivel 2 ni a Nivel 4 (F1 0.31). Con paciencia 30 tampoco aprenden Nivel 2.
-    - Con balanceo, la red sin escalar sí funciona (casos 2 y 4: 0.5676 y 0.5847).
-    - En el SVM, el escalado solo importa con gamma fijo: con RBF y gamma = 0.1, el F1 de validación cae a 0.31–0.42 en el caso 4, frente a 0.58–0.60 en el 8.
-    - **Importante para la sección 7:** la gráfica de F1 por normalización mostrará el efecto en la red, pero no en el SVM.
-  - **Outliers:** sin efecto consistente (SVM 0.5558 → 0.5547; red 0.4816 → 0.5048, diferencia que viene solo del par de casos 5 y 7).
-  - **Kernel:** el lineal gana en 7 de 8 casos; la frontera entre niveles es casi lineal. Las regiones de decisión son franjas ordenadas de Nivel 1 a Nivel 4 a lo largo de PC1 (puntajes).
-  - Los errores son casi todos entre niveles vecinos (caso 8: 14 de 339 en el SVM y 16 de 341 en la red saltan más de un nivel).
-- **Dudas o cambios solicitados:**
+    - SVM: 0.5135–0.6055 (mejor caso 2).
+    - Red: 0.2971–0.6357 (mejor caso 8).
+    - Caso 8: red 0.6357 y SVM 0.5876 (la red es mejor por 0.048). El SVM detecta más Nivel 1 (recall 0.596 frente a 0.526); la red, más Nivel 3 y Nivel 4 (0.779 y 0.630 frente a 0.698 y 0.565), y es más precisa en las clases extremas.
+  - **El balanceo es el factor dominante:** el F1 medio pasa de 0.5157 a 0.5915 en el SVM y de 0.3854 a 0.5751 en la red.
+  - **El escalado afecta mucho a la red y poco al SVM.**
+    - Red: 0.4175 sin escalar frente a 0.5430 con escalado; la mejora aparece en los 4 pares (de +0.085 a +0.162).
+    - Los casos 1 y 3 (sin escalar y desbalanceados) no asignan ningún registro de prueba a Nivel 2 ni a Nivel 4 (F1 0.31 y 0.30), y con paciencia 30 tampoco. El caso 7 tampoco asigna Nivel 2.
+    - Con balanceo, la red sin escalar sí aprende las cuatro clases (casos 2 y 4: 0.52 y 0.54), pero oscila entre épocas.
+    - SVM: 0.5603 sin escalar frente a 0.5469 con escalado. Con lineal (casos desbalanceados) no hay diferencia; con RBF (balanceados), el escalado baja el F1 entre 0.014 y 0.034.
+  - **Outliers:** sin efecto consistente (SVM 0.5526 → 0.5546; red 0.4780 → 0.4825, con pares que cambian en ambos sentidos, de −0.018 a +0.031).
+  - **Kernel:** el lineal gana en los 4 casos desbalanceados y el RBF en los 4 balanceados, por menos de 0.01. La frontera entre niveles es casi lineal: las regiones de decisión son franjas ordenadas de Nivel 1 a Nivel 4 a lo largo de PC1 (puntajes).
+  - Los errores son casi todos entre niveles vecinos: en el caso 8, 8 de 329 en el SVM y 11 de 295 en la red saltan más de un nivel.
+- **Dudas o cambios solicitados:** ninguno.
 
 #### Bloque 4 – K-Means y DBSCAN
+> Cifras actualizadas por el bloque 1 el 23/11/2026 con la ejecución en el entorno de referencia (sección 2). En este bloque solo cambiaron algunos decimales.
+
 - **Estado:** sección 8 terminada.
   - K-Means y DBSCAN entrenados y registrados en los **8 casos** con `registrar_clustering`; `tabla_figura3()` completa (el silhouette de DBSCAN con la regla queda en NaN; ver hallazgos).
   - Codo y silhouette (K de 2 a 10), tamaños de los clusters, efecto del escalado y de los outliers.
@@ -504,22 +528,22 @@ Si encuentran una inconsistencia, corríjanla en su sección o avísenle al resp
   - **Datos:** `obtener_datos_no_supervisado(k)`; se agrupa solo el entrenamiento de cada caso. La etiqueta se usa únicamente en 8.7.
   - **K-Means:** `init="k-means++"`, `n_init=10` (valor del notebook `6-03`), `random_state=SEMILLA`. K de 2 a 10, elegido con el **silhouette máximo**: K = 2 en los 8 casos. El codo (leído con el punto más alejado de la recta entre extremos) marca K = 4 sin escalar y K = 5 con escalado, pero ahí el silhouette baja a 0.26–0.34 y 0.09–0.14.
   - Los clusters de K-Means se **renumeran**: C0 = menor puntaje medio en las otras 4 áreas, C1 = mayor. No cambia inercia ni silhouette.
-  - **DBSCAN (Figura 3):** MinPts = 2 × 65 = **130** (regla del enunciado y de la diapositiva 6-03) y ε en el codo de la k-distancia con k = MinPts (ε entre 3.65 y 16.55). Resultado: **1 cluster en los 8 casos** (0.1–3.3 % de ruido), silhouette NaN. La segunda regla de la diapositiva (MinPts = 66) da lo mismo.
+  - **DBSCAN (Figura 3):** MinPts = 2 × 65 = **130** (regla del enunciado y de la diapositiva 6-03) y ε en el codo de la k-distancia con k = MinPts (ε entre 3.64 y 16.55). Resultado: **1 cluster en los 8 casos** (0.1–3.3 % de ruido), silhouette NaN. La segunda regla de la diapositiva (MinPts = 66) da lo mismo.
   - **DBSCAN, prueba complementaria** (acordada con el equipo para que la gráfica de DBSCAN tenga valores): el ε más cercano al codo que separa ≥ 2 clusters, bajando ε en pasos de 2 % hasta el 40 % del codo; si con MinPts = 130 no aparecen, se baja a 66 y luego a 10 (la diapositiva 6-03 permite reducir MinPts con mucho ruido). Se reporta aparte, no reemplaza la regla.
   - **3 datos de prueba:** `INDICES_DEMO`. K-Means con `predict`; DBSCAN asignando al cluster del *core sample* más cercano si está a ≤ ε, o ruido. No se usa el método del notebook `6-04` (reentrenar con el punto nuevo) porque cambia el modelo.
-  - **3 estudiantes hipotéticos (8.3.1):** como no se pudo confirmar con el profesor si los "3 datos de prueba" son registros reales o casos nuevos (el enunciado dice "generación" en el módulo no supervisado), cubrimos las dos lecturas: además de `INDICES_DEMO`, tres perfiles construidos a mano (bajo, medio y alto), como el "nuevo vino" del notebook `6-03`, preprocesados con `codificar_ordinales`, `aplicar_one_hot` y `aplicar_escalado` del bloque 1.
+  - **3 estudiantes hipotéticos (8.3.1):** como no se pudo confirmar con el profesor si los "3 datos de prueba" son registros reales o casos nuevos (el enunciado dice "generación" en el módulo no supervisado), cubrimos las dos lecturas: además de `INDICES_DEMO`, tres perfiles construidos a mano (bajo, medio y alto), como el "nuevo vino" del notebook `6-03`, preprocesados con `codificar_ordinales`, `aplicar_one_hot` y `aplicar_escalado` del bloque 1. Desde el 23/11 se definen en la sección 4.9 (`ESTUDIANTES_HIPOTETICOS`, `obtener_datos_hipoteticos`), porque el módulo supervisado también los usa (sección 7.5).
 - **Nombres globales nuevos:**
-  - Variables: `DATOS_NS`, `COLUMNAS_NUMERICAS_NS`, `RANGO_K`, `N_INIT_KMEANS`, `CURVAS_KMEANS`, `K_CODO`, `K_SILHOUETTE`, `K_OPTIMO`, `ELECCION_K`, `PUNTAJES_NS`, `MODELOS_KMEANS`, `MAPA_KMEANS`, `ETIQUETAS_KMEANS`, `TAMANOS_KMEANS`, `N_CARACTERISTICAS`, `MINPTS_REGLA`, `MINPTS_REGLA_2`, `KDIST`, `EPS_CODO`, `MODELOS_DBSCAN`, `filas_reglas`, `REGLAS_DBSCAN`, `FRACCIONES_EPS`, `SENSIBILIDAD_DBSCAN`, `ESCALERA_MINPTS`, `PASO_EPS`, `FRACCION_MINIMA`, `DBSCAN_COMPLEMENTARIO`, `TABLA_DBSCAN_COMPLEMENTARIO`, `DEMO_CLUSTERING`, `FIGURA3`, `PERFILES_KMEANS`, `PROMEDIOS_BLOQUE4`, `ESTUDIANTES_HIPOTETICOS`, `DEMO_HIPOTETICOS`.
+  - Variables: `DATOS_NS`, `COLUMNAS_NUMERICAS_NS`, `RANGO_K`, `N_INIT_KMEANS`, `CURVAS_KMEANS`, `K_CODO`, `K_SILHOUETTE`, `K_OPTIMO`, `ELECCION_K`, `PUNTAJES_NS`, `MODELOS_KMEANS`, `MAPA_KMEANS`, `ETIQUETAS_KMEANS`, `TAMANOS_KMEANS`, `N_CARACTERISTICAS`, `MINPTS_REGLA`, `MINPTS_REGLA_2`, `KDIST`, `EPS_CODO`, `MODELOS_DBSCAN`, `filas_reglas`, `REGLAS_DBSCAN`, `FRACCIONES_EPS`, `SENSIBILIDAD_DBSCAN`, `ESCALERA_MINPTS`, `PASO_EPS`, `FRACCION_MINIMA`, `DBSCAN_COMPLEMENTARIO`, `TABLA_DBSCAN_COMPLEMENTARIO`, `DEMO_CLUSTERING`, `FIGURA3`, `PERFILES_KMEANS`, `PROMEDIOS_BLOQUE4`, `DEMO_HIPOTETICOS` (`ESTUDIANTES_HIPOTETICOS` pasó a la sección 4.9).
   - Funciones: `tabla_figura2`, `participacion_varianza`, `curva_kmeans`, `indice_codo`, `graficar_curvas_kmeans`, `orden_clusters_kmeans`, `predecir_kmeans`, `nombre_cluster`, `tamanos_clusters`, `mascara_outliers_ns`, `efecto_factor_kmeans`, `outliers_por_cluster`, `coincidencia_escalado`, `k_distancias`, `eps_codo`, `graficar_kdistancia`, `resumen_dbscan`, `sensibilidad_eps`, `dbscan_complementario`, `mascara_sinteticos`, `sinteticos_por_cluster`, `predecir_dbscan`, `demo_clustering`, `preparar_hipoteticos`, `demo_hipoteticos`, `graficar_silhouette_figura3`, `graficar_pca_clusters`, `graficar_validacion_externa`, `perfil_clusters`, `resumen_bloque4`.
   - Se importan `KMeans`, `DBSCAN`, `NearestNeighbors` y `PCA`.
 - **Tiempo de ejecución:** ~1.5 min (K-Means de 2 a 10 ~35 s; prueba complementaria de DBSCAN ~30 s; el resto, segundos).
 - **Hallazgos:**
   - **K-Means separa desempeño bajo y alto:** C0 con puntajes medios de 45–49 en lectura crítica, estrato 1.7–2.0 y 17.1–18.0 años; C1 con 64–67, estrato 2.4–2.6 y 16.5–16.9 años. C0 casi no tiene Nivel 4 (0.0–0.4 %) y C1 casi no tiene Nivel 1 (0.1–0.4 %), pero los niveles intermedios se mezclan (Nivel 3 es el 60–62 % de C0 en los desbalanceados).
-  - **Silhouette de K-Means:** 0.41–0.56 sin escalar y 0.17–0.25 con escalado. Por factor: ED 0.4864 → 0.2085; outliers 0.3513 → 0.3436; balanceo 0.2970 → 0.3980.
+  - **Silhouette de K-Means:** 0.41–0.56 sin escalar y 0.17–0.25 con escalado. Por factor: ED 0.4864 → 0.2086; outliers 0.3513 → 0.3437; balanceo 0.2970 → 0.3980.
   - **El escalado baja el silhouette pero no cambia los grupos** (89.5–94.7 % de registros en el mismo cluster entre k y k+4). Sin escalar, las 5 numéricas aportan el 97.1 % de la varianza.
   - **Outliers:** sin efecto (≤ 0.019 de silhouette); se reparten 4.0–6.0 % en cada cluster.
   - **DBSCAN no encuentra estructura de densidad:** la k-distancia sube de forma continua. Al bajar ε, el ruido crece antes de que aparezca un segundo cluster (caso 5: 15 % → 90 % entre el 80 % y el 70 % del codo).
-  - **Prueba complementaria:** silhouette 0.025–0.474, con 7–84 % de ruido; en los casos 3 y 5 el segundo cluster tiene solo 6–7 registros. En los casos balanceados, los clusters densos son 76–85 % registros sintéticos de SMOTENC (frente al 46–48 % del caso): densidad artificial.
+  - **Prueba complementaria:** silhouette 0.025–0.477, con 7–84 % de ruido; en los casos 3 y 5 el segundo cluster tiene solo 6–7 registros. En los casos balanceados, los clusters densos son 76–85 % registros sintéticos de SMOTENC (frente al 46–48 % del caso): densidad artificial.
   - **3 datos de prueba:** K-Means pone el registro de Nivel 1 en C0 y los de Nivel 3 y Nivel 4 en C1 en los 8 casos. Con los estudiantes hipotéticos, el perfil bajo y el medio van a C0 y el alto a C1 en los 8 casos (la frontera está cerca de 55 puntos).
   - **Para la sección 7 y el documento:** la conclusión del módulo no supervisado es que el desempeño es un continuo; los modelos supervisados confunden niveles vecinos por la misma razón.
 - **Dudas o cambios solicitados:** ninguno para otros bloques. `mascara_sinteticos` supone que SMOTENC deja los registros reales al inicio y los sintéticos al final (comportamiento de `imbalanced-learn`); si el bloque 1 cambia el balanceo, hay que revisarla.
