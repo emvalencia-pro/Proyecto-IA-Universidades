@@ -25,9 +25,9 @@ Predecimos el nivel de desempeño en matemáticas (Nivel 1 a 4) de los estudiant
 
 Después quitamos la etiqueta y agrupamos los mismos datos con K-Means y DBSCAN. K-Means encontró dos grupos, desempeño bajo y desempeño alto, que separan bien el Nivel 1 del Nivel 4 pero no los niveles intermedios. DBSCAN, con la regla del enunciado, dejó todo en un solo cluster. Ambos resultados indican que el desempeño se comporta como un continuo, y por eso todos los clasificadores se equivocan sobre todo entre niveles vecinos.
 
-## Decisiones principales
+<div style="page-break-before: always"></div>
 
-La columna *Notebook* indica la sección del notebook donde está el código de cada decisión.
+## Decisiones principales
 
 | Decisión | Justificación | Notebook |
 |---|---|---|
@@ -47,6 +47,8 @@ La columna *Notebook* indica la sección del notebook donde está el código de 
 | Balanceado: SMOTENC | Genera registros nuevos sin crear categorías inexistentes | 4.6 |
 | Curvas ROC y PR micro-promediadas, con AUC y AP por clase | Una curva por algoritmo para comparar las 4 técnicas; el área por clase muestra Nivel 4, que el micro-promedio oculta | 7.3 |
 | Métrica priorizada: recall de Nivel 1, sin sacrificar el F1 macro | En un uso de alerta temprana, no detectar a un estudiante de Nivel 1 es el error más costoso | 7.4 |
+
+La columna *Notebook* indica la sección del notebook donde está el código de cada decisión.
 
 # Módulo 1 – Aprendizaje supervisado
 
