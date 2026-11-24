@@ -40,6 +40,10 @@
 
 Recomendado: trabaja en una **copia** del notebook y entrega tus celdas para integrarlas al final. Así nadie pisa el trabajo de otro.
 
+**Entorno de referencia (desde el 23/11/2026).** Las salidas guardadas y todas las cifras del markdown corresponden a la ejecución completa en macOS arm64 con Python 3.14.7, scikit-learn 1.9.1, imbalanced-learn 0.14.2 y TensorFlow 2.22.0rc1. La segunda celda de código del notebook imprime estas versiones.
+- En este entorno, el notebook es determinista: dos ejecuciones completas dan exactamente las mismas salidas.
+- En otro entorno (por ejemplo, Colab), SMOTENC genera registros apenas distintos y TensorFlow entrena distinto. Cambian entonces los casos balanceados (2, 4, 6 y 8), las redes y algunas decisiones automáticas (profundidad del árbol, k, kernel del SVM, configuración de la red). Antes de citar una cifra, compruébala en este entorno.
+
 ---
 
 ## 3. Datos disponibles (contrato de entrada)
@@ -365,9 +369,44 @@ Si encuentran una inconsistencia, corríjanla en su sección o avísenle al resp
 
 ### 10.3 Registro por bloque
 
+> **Aviso del bloque 1 (23/11/2026):** el notebook se volvió a ejecutar completo en el entorno de referencia de la sección 2, y el markdown de las secciones 5, 6 y 8 se actualizó con las cifras nuevas. Los "Hallazgos" y algunas "Decisiones" de los bloques 2, 3 y 4 que siguen más abajo citan la ejecución anterior (como root, probablemente en Colab). Mientras cada responsable no actualice su subsección, la fuente de verdad es el markdown del notebook. Los cambios principales están en la subsección del bloque 1.
+
 #### Bloque 1 – Datos, preprocesamiento y evaluación comparativa
-- **Estado:** secciones 0–4.10 terminadas y verificadas (el notebook corre completo en ~15 s). Las funciones del contrato están probadas con modelos de relleno. Falta la sección 7, que depende de los resultados de los bloques 2 y 3.
-- **Nombres globales:** los de la sección 7 de este archivo.
+- **Estado:** secciones 0–4.10 y sección 7 terminadas.
+  - El notebook completo (secciones 0 a 8) corre de principio a fin sin errores en un kernel nuevo, en ~7.6 min en el entorno de referencia.
+  - Dos ejecuciones completas dan exactamente las mismas salidas en las 70 celdas de código previas a la sección 7.
+- **Sección 0:** nueva celda `versiones_librerias()`, que imprime el sistema, Python y las versiones de las librerías. La nota de reproducibilidad de la sección 0 aclara que otro entorno puede cambiar las cifras de los casos balanceados y de las redes. No se fijaron versiones en `%pip`: TensorFlow 2.22.0rc1 para macOS arm64 no garantiza los mismos resultados en Linux.
+- **Sección 7 (evaluación comparativa):**
+  - 7.1: tabla de la Figura 1 (`tabla_figura1()`) y el mejor algoritmo de cada caso.
+  - 7.2: las 4 gráficas de F1 (máximo por algoritmo; medio por normalización, por outliers y por balanceo), cada una con su análisis. La 7.2.4 explica por qué el accuracy engaña, con el recall por clase, las clases que nunca se predicen y la regla trivial "siempre Nivel 3".
+  - 7.3: curvas ROC y Precision-Recall del caso 8, micro-promediadas (One-vs-Rest), con las funciones del notebook `6-02` (`roc_curve`, `precision_recall_curve`, `auc`, `average_precision_score`), y tabla de AUC y AP por clase.
+  - 7.4: costo de los errores en un uso de alerta temprana, matrices de confusión del caso 8 y recall de Nivel 1 en los 8 casos.
+  - 7.5: conclusiones del módulo supervisado.
+- **Decisiones:**
+  - **Curvas micro-promediadas** (una curva por algoritmo, como en la práctica de ejemplo), complementadas con AUC y AP por clase. El micro-promedio lo dominan Nivel 3 y Nivel 2, y ocultaría la diferencia entre la red y el SVM en Nivel 4 (AP de 0.633 frente a 0.406).
+  - **Métrica priorizada: recall de Nivel 1, sin sacrificar el F1 macro.** El falso negativo de Nivel 1 es el error más costoso en la alerta temprana. El recall solo no basta: la red del caso 3 llega a 0.939 asignando Nivel 1 a 408 de 953 estudiantes.
+  - En la sección 7 no se ajusta nada con la prueba. La comparación de la 7.4 se presenta como análisis, no como selección de modelo.
+- **Nombres globales nuevos:**
+  - Variables: `FIGURA1`, `F1_CASOS`, `ETIQUETAS_FACTOR`, `CASO_CURVAS`, `CURVAS_CASO8`, `AREAS_CASO8`.
+  - Funciones: `versiones_librerias`, `f1_por_caso`, `mejor_por_caso`, `graficar_f1_maximo`, `f1_medio_por_factor`, `graficar_f1_por_factor`, `recall_por_clase`, `accuracy_frente_a_f1`, `clases_no_predichas`, `referencia_clase_mayoritaria`, `binarizar`, `curvas_roc_pr`, `graficar_roc_pr`, `areas_por_clase`, `errores_por_clase`, `recall_clase_por_caso`.
+  - Se importan `roc_curve`, `precision_recall_curve`, `auc` y `average_precision_score`.
+- **Tiempo de ejecución de la sección 7:** unos segundos (no entrena modelos).
+- **Hallazgos (entorno de referencia):**
+  - **F1 macro máximo:** red 0.6357 (caso 8) > SVM 0.6055 (caso 2) > árbol 0.5803 (casos 2 y 6) > KNN 0.5274 (caso 2). En los desbalanceados gana siempre el árbol; en los balanceados, el SVM sin escalado y la red con escalado.
+  - **Balanceo:** es el factor dominante (de +0.014 en KNN a +0.190 en la red).
+  - **Escalado:** nulo en el árbol, +0.125 en la red, −0.079 en KNN y −0.013 en el SVM (solo en los casos con RBF).
+  - **Outliers:** ningún algoritmo cambia su F1 medio en 0.02 o más.
+  - **Caso 8:** AUC/AP micro de 0.904/0.727 en la red, 0.894/0.695 en el SVM, 0.809/0.537 en el árbol y 0.657/0.364 en KNN (k = 1, un solo umbral).
+- **Cambios respecto de la ejecución anterior, que afectan a otros bloques** (el markdown del notebook ya está actualizado; falta actualizar sus subsecciones de este archivo):
+  - Bloque 2:
+    - `max_depth` = 10 en los casos 4 y 8 (antes 6), y estos dos casos ya no son idénticos (F1 0.5546 y 0.5533).
+    - k = 17, 1, 47, 1, 37, 1, 47 y 1 (el caso 8 pasa de 11 a 1).
+    - `PUNT_C_NATURALES` concentra 0.584–0.840 de la importancia.
+  - Bloque 3:
+    - SVM: lineal C = 1 en los desbalanceados; RBF en los balanceados (C = 10/scale en el 2, C = 1/scale en el 4 y el 6, C = 1/0.1 en el 8).
+    - Red final: `Dense(64, tanh, L2 0.01) → Dense(32, tanh, L2 0.01) → Dense(4, softmax)`, con Adam lr = 0.01. Antes era ReLU con Dropout 0.3 y lr = 0.001.
+    - La red del caso 8 supera al SVM (F1 0.6357 frente a 0.5876).
+  - Bloque 4: solo cambian algunos decimales (silhouette de 0.2085 a 0.2086, inercias de los casos balanceados y el ruido de DBSCAN complementario del caso 8: 82 %).
 - **Pendiente:** confirmar con el profesor la interpretación de "3 datos de prueba".
 
 #### Bloque 2 – Árboles y KNN
@@ -408,8 +447,6 @@ Si encuentran una inconsistencia, corríjanla en su sección o avísenle al resp
   - El registro de demostración de Nivel 4 se predice como Nivel 3 con los dos modelos en los 8 casos, igual que con SVM y la red.
 - **Dudas o cambios solicitados (para el bloque 1):**
   - **Versiones de las librerías:** la celda `%pip` no fija versiones. Al ejecutar con scikit-learn 1.9.1 e imbalanced-learn 0.14.2, los valores escalados de los registros de demostración del caso 8 difieren desde el cuarto decimal de los guardados antes (por ejemplo, −1.191927 frente a −1.192134), aunque los conteos de registros, clases y outliers son idénticos y las métricas de la sección 6 no cambian. Conviene fijar versiones para que la ejecución del profesor dé las mismas cifras.
-  - **Filas duplicadas:** el CSV tiene 16 filas exactamente duplicadas (`df_raw.duplicated().sum()`), y el notebook no lo menciona. Conviene decidir si se eliminan o justificar que se conservan.
-
 #### Bloque 3 – SVM y redes neuronales
 - **Estado:** sección 6 terminada.
   - SVM y Redes Neuronales entrenados y registrados en los **8 casos** con `registrar_resultado`, y `predecir_demo` en los 8 casos.
