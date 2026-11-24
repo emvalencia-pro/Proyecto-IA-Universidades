@@ -277,6 +277,8 @@ Todo esto sale de `Enunciado.md` y `bloques.md`; revisen ambos para el detalle.
 - No cambiar `GENERAR_SUBCONJUNTO` a `True`.
 
 ### 7.1 Tono del markdown
+> **Desde el 24/11/2026, el análisis y la justificación van en el documento de diseño (`documento/documento-diseno.md`).** En el notebook, cada sección lleva solo su título numerado, qué hace el código (1 a 3 líneas) y la sección del documento que le corresponde. Los criterios de tono de esta sección se aplican ahora al documento.
+
 El notebook se dirige al **profesor**: no enseña, **justifica**. Todo el notebook debe sonar igual, así que sigan estos criterios (las secciones 0–4.10 son el modelo):
 
 1. **Primera persona del plural.** "Elegimos", "descartamos", "conservamos". No le hablen al lector ("pongan", "ustedes", "fíjense").
@@ -325,7 +327,26 @@ En la medida de lo posible, **las implementaciones deben parecerse a las vistas 
 | Desbalanceado: submuestreo 70/10/10/10 · Balanceado: SMOTENC | Solo datos reales en el primero; en el segundo, registros sintéticos sin categorías inexistentes |
 | Métricas con promedio `macro` | Que Nivel 4 (4.9 %) pese igual que Nivel 3 |
 
-Cada sección del notebook tiene la justificación completa. **Todos deben entender todo el proyecto:** la sustentación vale 40 % y el profesor puede preguntarle cualquier cosa a cualquiera.
+El documento de diseño tiene la justificación completa, y cada sección del notebook indica dónde está. **Todos deben entender todo el proyecto:** la sustentación vale 40 % y el profesor puede preguntarle cualquier cosa a cualquiera.
+
+### 8.1 Preguntas probables en la sustentación
+Salieron de la revisión completa del notebook del 24/11/2026. Son decisiones defendibles, pero el profesor puede preguntar por ellas. Cualquiera de los cuatro debe poder responderlas.
+
+| Pregunta probable | Respuesta corta | Dónde está |
+|---|---|---|
+| ¿Para qué predecir matemáticas si ya tienen los otros puntajes del mismo examen? | El uso previsto es la alerta temprana con los puntajes de un simulacro previo, no con el examen oficial | 1.3, 7.4 |
+| Si los nulos no son aleatorios, ¿por qué imputar con la moda, que borra esa información? | Ninguna variable supera el 18 % de nulos y el enunciado sugiere mediana o moda. La alternativa habría sido una categoría "Sin dato" | 3.4 |
+| Los adultos (outliers de edad) son estudiantes reales, ¿por qué eliminarlos? | El enunciado exige una versión sin outliers. Solo se eliminan del entrenamiento (la prueba los conserva), y su efecto en el F1 es menor de 0.02 | 4.5, 7.2.3 |
+| ¿Por qué la red usa tolerancia de 0.01 y los demás modelos no? ¿Y por qué se aceptan mejoras de 0.012–0.019 si el texto dice que no interpreta diferencias menores de 0.02? | Son criterios distintos: 0.01 es la regla para cambiar de configuración en validación, y 0.02 es el umbral para interpretar diferencias en la prueba. El árbol, KNN y el SVM siguen el criterio de los notebooks del curso (máximo en validación). Con tolerancia, el árbol de los casos 4 y 8 tendría profundidad 6 | 5.1.1, 6.2.1 |
+| ¿Por qué balancear antes de escalar, si SMOTE usa distancias? | Para que los casos k y k+4 tengan los mismos registros. Los 4 puntajes comparten la escala 0–100 | 4 |
+| ¿La mejora con balanceo no es solo por tener más datos? | En parte puede serlo: los casos balanceados usan todos los registros reales más los sintéticos. Pero el patrón de errores (sin balanceo casi no se predice Nivel 2) apunta a la distribución de clases | 7.2.4 |
+| ¿Por qué KNN usa k = 1 en los casos balanceados? | La validación cruzada de 5 folds (criterio del enunciado) lo elige por los registros sintéticos de SMOTENC. Está documentado como ejemplo de "por qué el accuracy engaña" | 5.2.1 |
+| ¿No es poco una sola semilla? | Por eso no interpretamos diferencias menores de 0.02 de F1 | 5.3, 6.3, 7 |
+| ¿Por qué en Colab salen otras cifras? | La semilla fija el azar, pero no las diferencias entre versiones de las librerías y sistemas. La sección 0 imprime el entorno de referencia | 0 |
+| ¿No es trampa usar la prueba para recomendar el SVM en la 7.4? | No se ajusta nada con la prueba; la comparación se presenta como análisis del costo de los errores | 7.4 |
+| ¿Revisaron filas duplicadas? | Hay 16 pares idénticos (casi seguro el mismo estudiante registrado dos veces en el original). Solo 4 registros de prueba (0.4 %) tienen copia en entrenamiento, un efecto menor que el umbral de 0.02 | — |
+| ¿Por qué solo interpretan las reglas del árbol en los casos 1 y 4? | El caso 1 es idéntico al 5 y sus umbrales están en puntos del examen; el 4 representa los balanceados. Los 8 árboles están graficados | 5.1.5, 5.1.6 |
+| ¿Por qué DBSCAN tiene una "prueba complementaria"? | Con la regla del enunciado da 1 solo cluster (silhouette no definido). La prueba complementaria se reporta aparte y no reemplaza la regla | 8.2.3 |
 
 ---
 
@@ -375,6 +396,9 @@ Si encuentran una inconsistencia, corríjanla en su sección o avísenle al resp
 - **Estado:** secciones 0–4.10 y sección 7 terminadas.
   - El notebook completo (secciones 0 a 8) corre de principio a fin sin errores en un kernel nuevo, en ~7.6 min en el entorno de referencia.
   - Dos ejecuciones completas dan exactamente las mismas salidas en las 70 celdas de código previas a la sección 7.
+- **Reestructuración (24/11/2026):** el notebook conserva los títulos numerados (son los índices que cita el documento), una descripción corta de lo que hace cada sección y la sección del documento donde está el análisis. Se quitaron 45 párrafos de análisis, que ya estaban en el documento; el texto del notebook bajó de ~96 000 a ~15 600 caracteres. El código y las salidas no cambiaron. Pasaron al documento la tabla "Decisiones principales" y la descripción de las 36 variables (anexo A). El archivo sigue pesando ~9 MB porque 8.5 MB son las figuras de las salidas.
+- **Documento de diseño (`documento/documento-diseno.md`), actualizado el 24/11/2026 con el notebook actual:** se había escrito con las cifras de la ejecución anterior (Colab) y antes de que existiera la sección 7. Ahora tiene la Figura 1, las decisiones (red, SVM, árbol, KNN), las curvas ROC/PR y el análisis de la ejecución de referencia, con las correcciones de la revisión. Todas las figuras de `documento/figuras/` salen de las salidas del notebook (`f1_por_factor.png` se reemplazó por `f1_normalizacion.png`, `f1_outliers.png` y `f1_balanceo.png`). **Si el notebook vuelve a cambiar, hay que regenerar las figuras y revisar las cifras del documento.** Faltan los datos del encabezado: integrantes, grupo, equipo y enlace del video.
+- **Revisión completa del notebook (24/11/2026):** se corrigieron 5 errores. (1) La 8.7 promediaba los códigos del estrato y de la educación de la madre; ahora muestra la mediana con su nombre y porcentajes. (2) La 4.8 anticipaba recall bajo en Nivel 1, y en los resultados el que cae es Nivel 2. (3) La 6.3 decía "952 registros de validación" en un resumen de prueba. (4) La 7.2.4 y la 7.6 no aclaraban que el efecto del balanceo se mezcla con el tamaño del entrenamiento. (5) Una cifra del calendario A en la sección 2 (23.8 % → 23.4 %). Además, la 1.3 aclara que el modelo se usaría con simulacros, y la 4.5 usa la cifra de extraedad del entrenamiento. Las preguntas defendibles quedaron en la sección 8.1 de este archivo.
 - **Presentación del notebook:** se quitaron las referencias internas al equipo que vería el profesor ("(bloque X)" en los títulos, "Resumen del bloque N", "contrato"). Los títulos ahora usan el nombre del contenido (por ejemplo, "5.3 Resumen de árboles y KNN"). Se agregó el encabezado "# Módulo 1 – Aprendizaje supervisado", y la instalación ya no muestra el aviso de versión de pip. Los nombres de funciones y variables (`resumen_bloque2`, `TABLA_BLOQUE3`…) no cambiaron.
 - **Sección 0:** nueva celda `versiones_librerias()`, que imprime el sistema, Python y las versiones de las librerías. La nota de reproducibilidad de la sección 0 aclara que otro entorno puede cambiar las cifras de los casos balanceados y de las redes. No se fijaron versiones en `%pip`: TensorFlow 2.22.0rc1 para macOS arm64 no garantiza los mismos resultados en Linux.
 - **Sección 7 (evaluación comparativa):**
@@ -538,7 +562,7 @@ Si encuentran una inconsistencia, corríjanla en su sección o avísenle al resp
   - Se importan `KMeans`, `DBSCAN`, `NearestNeighbors` y `PCA`.
 - **Tiempo de ejecución:** ~1.5 min (K-Means de 2 a 10 ~35 s; prueba complementaria de DBSCAN ~30 s; el resto, segundos).
 - **Hallazgos:**
-  - **K-Means separa desempeño bajo y alto:** C0 con puntajes medios de 45–49 en lectura crítica, estrato 1.7–2.0 y 17.1–18.0 años; C1 con 64–67, estrato 2.4–2.6 y 16.5–16.9 años. C0 casi no tiene Nivel 4 (0.0–0.4 %) y C1 casi no tiene Nivel 1 (0.1–0.4 %), pero los niveles intermedios se mezclan (Nivel 3 es el 60–62 % de C0 en los desbalanceados).
+  - **K-Means separa desempeño bajo y alto:** C0 con puntajes medios de 45–49 en lectura crítica y 17.1–18.0 años; C1 con 64–67 y 16.5–16.9 años. El estrato mediano es 2 en ambos, pero en C1 el 40–49 % vive en estrato 3 o superior, frente al 15–25 % en C0 (el estrato y la educación de la madre se resumen con la mediana y porcentajes, no con el promedio de sus códigos). C0 casi no tiene Nivel 4 (0.0–0.4 %) y C1 casi no tiene Nivel 1 (0.1–0.4 %), pero los niveles intermedios se mezclan (Nivel 3 es el 60–62 % de C0 en los desbalanceados).
   - **Silhouette de K-Means:** 0.41–0.56 sin escalar y 0.17–0.25 con escalado. Por factor: ED 0.4864 → 0.2086; outliers 0.3513 → 0.3437; balanceo 0.2970 → 0.3980.
   - **El escalado baja el silhouette pero no cambia los grupos** (89.5–94.7 % de registros en el mismo cluster entre k y k+4). Sin escalar, las 5 numéricas aportan el 97.1 % de la varianza.
   - **Outliers:** sin efecto (≤ 0.019 de silhouette); se reparten 4.0–6.0 % en cada cluster.

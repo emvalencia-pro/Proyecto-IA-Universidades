@@ -21,9 +21,32 @@ Cada sección de este documento indica entre paréntesis la sección del noteboo
 
 ## Resumen
 
-Predecimos el nivel de desempeño en matemáticas (Nivel 1 a 4) de los estudiantes que presentaron el Saber 11 de 2022, a partir de sus puntajes en las otras áreas y de información de su familia y su colegio. Construimos 8 versiones del entrenamiento combinando escalado, outliers y balanceo, y en cada una entrenamos un árbol de decisión, KNN, una SVM y una red neuronal. El balanceo fue lo que más mejoró los modelos, el escalado solo importó en KNN y en la red, y los outliers casi no cambiaron nada. El mejor resultado fue el de la SVM en el caso 2 (F1 macro de 0.605).
+Predecimos el nivel de desempeño en matemáticas (Nivel 1 a 4) de los estudiantes que presentaron el Saber 11 de 2022, a partir de sus puntajes en las otras áreas y de información de su familia y su colegio. Construimos 8 versiones del entrenamiento combinando escalado, outliers y balanceo, y en cada una entrenamos un árbol de decisión, KNN, una SVM y una red neuronal. El balanceo fue lo que más mejoró los modelos; el escalado ayudó a la red, perjudicó a KNN y no cambió el árbol; y los outliers casi no cambiaron nada. El mejor resultado fue el de la red neuronal en el caso 8 (F1 macro de 0.636), y la SVM fue la técnica más robusta entre casos.
 
 Después quitamos la etiqueta y agrupamos los mismos datos con K-Means y DBSCAN. K-Means encontró dos grupos, desempeño bajo y desempeño alto, que separan bien el Nivel 1 del Nivel 4 pero no los niveles intermedios. DBSCAN, con la regla del enunciado, dejó todo en un solo cluster. Ambos resultados indican que el desempeño se comporta como un continuo, y por eso todos los clasificadores se equivocan sobre todo entre niveles vecinos.
+
+## Decisiones principales
+
+La columna *Notebook* indica la sección del notebook donde está el código de cada decisión.
+
+| Decisión | Justificación | Notebook |
+|---|---|---|
+| Generación verificable desde el original | La huella SHA-256 y la comparación con el entregado demuestran que el subconjunto es reproducible | 1.1 |
+| Subconjunto en el ZIP, con copia en Drive | El notebook se ejecuta sin pasos manuales, tanto en local como en Colab | 1.2 |
+| Conservar los puntajes de las otras áreas | No se derivan del puntaje de matemáticas, así que no constituyen fuga | 1.3 |
+| Eliminar 14 columnas | Cada eliminación está respaldada con datos: no aportan información o la duplican | 2 |
+| Imputar en lugar de eliminar filas | Los nulos no son aleatorios; eliminarlos sesgaría la muestra | 3.4 |
+| Correlación de Spearman | 5 de las variables analizadas son ordinales | 3.5 |
+| Balancear antes de escalar | Los casos *k* y *k+4* conservan los mismos registros | 4 |
+| Codificación ordinal para 5 variables y One-Hot para 13 | Se conserva el orden donde existe y no se impone donde no lo hay | 4.3 |
+| StandardScaler | KNN, SVM y las redes requieren escala comparable, y se distorsiona menos que MinMax con outliers | 4.4 |
+| IQR (1.5) para detectar outliers | No asume normalidad, y `EDAD` es muy asimétrica | 4.5 |
+| Sin outliers: eliminar las filas | Son ~3 % del entrenamiento; recortarlas alteraría valores reales | 4.5 |
+| Con outliers: reales más inyectados hasta el 5 % | Se conservan los atípicos propios del dominio y se garantiza el 5 % exacto | 4.5 |
+| Desbalanceado: submuestreo a 70/10/10/10 | Solo usa registros reales; Nivel 4 determina el tamaño | 4.6 |
+| Balanceado: SMOTENC | Genera registros nuevos sin crear categorías inexistentes | 4.6 |
+| Curvas ROC y PR micro-promediadas, con AUC y AP por clase | Una curva por algoritmo para comparar las 4 técnicas; el área por clase muestra Nivel 4, que el micro-promedio oculta | 7.3 |
+| Métrica priorizada: recall de Nivel 1, sin sacrificar el F1 macro | En un uso de alerta temprana, no detectar a un estudiante de Nivel 1 es el error más costoso | 7.4 |
 
 # Módulo 1 – Aprendizaje supervisado
 
@@ -31,7 +54,7 @@ Después quitamos la etiqueta y agrupamos los mismos datos con K-Means y DBSCAN.
 
 ### 1.1 Dominio y justificación
 
-Elegimos el dominio de la educación. El desempeño en matemáticas del Saber 11 pesa en el acceso a la educación superior, y predecirlo a partir del contexto del estudiante permite identificar a tiempo a quienes tienen riesgo de quedar en los niveles bajos. La variable objetivo es `DESEMP_MATEMATICAS`, con los rangos oficiales del ICFES: Nivel 1 (0–35), Nivel 2 (36–50), Nivel 3 (51–70) y Nivel 4 (71–100).
+Elegimos el dominio de la educación. El desempeño en matemáticas del Saber 11 pesa en el acceso a la educación superior, y predecirlo a partir del contexto del estudiante y de sus puntajes en las otras áreas permite identificar a tiempo a quienes tienen riesgo de quedar en los niveles bajos. Como esos puntajes salen del mismo examen, en la práctica el modelo se usaría con los de un simulacro previo (sección 5.4). La variable objetivo es `DESEMP_MATEMATICAS`, con los rangos oficiales del ICFES: Nivel 1 (0–35), Nivel 2 (36–50), Nivel 3 (51–70) y Nivel 4 (71–100).
 
 ### 1.2 Fuente y generación del subconjunto
 
@@ -50,6 +73,8 @@ El notebook puede regenerar el subconjunto desde el original (`GENERAR_SUBCONJUN
 | ≥ 5000 registros | 6350 |
 | ≥ 4 clases | Nivel 1: 11.9 % · Nivel 2: 36.6 % · Nivel 3: 46.6 % · Nivel 4: 4.9 % |
 | Numéricas y categóricas | 23 predictores tras la limpieza: 5 numéricos, 5 ordinales y 13 nominales |
+
+La descripción de las 36 variables del subconjunto y el motivo para usar o descartar cada una están en el anexo A.
 
 | Tipo | Variables |
 |---|---|
@@ -126,9 +151,9 @@ Todo ajuste que aprende de los datos se hace **solo con el entrenamiento**. Vali
 | 7 | SI | SI | NO | 2170 | 10/10/70/10 % |
 | 8 | SI | SI | SI | 8296 | 25 % cada uno |
 
-Los casos desbalanceados quedan con ~2100 registros (~32 por columna). Lo consideramos suficiente: la prueba es la misma para todos y el menor desempeño esperado es justamente el efecto que el enunciado pide analizar.
+Los casos desbalanceados quedan con ~2100 registros (~32 por columna). Lo consideramos suficiente: la prueba es la misma para todos y el menor desempeño (recall bajo en Nivel 2 y Nivel 4) es justamente el efecto que el enunciado pide analizar.
 
-**Contrato común.** Todas las métricas de prueba las calcula una sola función (`registrar_resultado`, sección 4.10), con promedio **macro** para que el Nivel 4 (4.9 %) pese igual que el Nivel 3 (46.6 %). Los "3 datos de prueba" son 3 registros fijos de prueba (uno de Nivel 1, uno de Nivel 3 y uno de Nivel 4), los mismos para todas las técnicas.
+**Evaluación común.** Todas las métricas de prueba las calcula una sola función (`registrar_resultado`, sección 4.10), con promedio **macro** para que el Nivel 4 (4.9 %) pese igual que el Nivel 3 (46.6 %). Los "3 datos de prueba" admiten dos lecturas y cubrimos ambas, con los mismos datos para todas las técnicas: 3 registros reales de la prueba (uno de Nivel 1, uno de Nivel 3 y uno de Nivel 4) y 3 estudiantes nuevos construidos a mano (perfiles bajo, medio y alto), como los "nuevos_datos" del notebook 5_02 (sección 4.9).
 
 ## 4. Entrenamiento de los modelos supervisados *(notebook: secciones 5 y 6)*
 
@@ -140,14 +165,14 @@ Para cada caso entrenamos árboles con `max_depth` de 1 a 15 con Gini y con entr
 
 ![max_depth frente a accuracy de entrenamiento (continua) y validación (discontinua)](figuras/arbol_profundidad.png){width=90%}
 
-- **Subajuste:** con `max_depth` = 1 el accuracy de validación es 0.508 (caso 1) y 0.165 (caso 2). **Sobreajuste:** con `max_depth` = 15 el entrenamiento llega a 0.950–0.985 mientras validación se estanca en 0.555–0.585.
-- **Profundidades elegidas:** 3 en los casos desbalanceados, 5 en los casos 2 y 6 y 6 en los casos 4 y 8.
-- **Gini frente a entropía:** las curvas casi se superponen; Gini gana en 6 de 8 casos. En los casos 3 y 7 la entropía elige profundidad 13 y sobreajusta (0.969 en entrenamiento). Registramos el árbol con Gini.
-- **Los casos *k* y *k+4* dan el mismo árbol:** los cortes son de una variable a la vez y escalar no cambia el orden de los valores.
+- **Subajuste:** con `max_depth` = 1 el accuracy de validación es 0.508 (caso 1) y 0.165 (caso 2). **Sobreajuste:** con `max_depth` = 15 el entrenamiento llega a 0.948–0.985 mientras validación se queda en 0.570–0.608.
+- **Profundidades elegidas:** 3 en los casos desbalanceados, 5 en los casos 2 y 6 y 10 en los casos 4 y 8. En estos dos, la curva de validación es casi plana entre las profundidades 4 y 10 (0.612–0.637), y la 10 supera a la 6 por solo 0.001.
+- **Gini frente a entropía:** las curvas casi se superponen; Gini gana en 6 de 8 casos. En los casos 3 y 7 la entropía elige profundidad 15 y sobreajusta (0.985 en entrenamiento). Registramos el árbol con Gini.
+- **Los casos *k* y *k+4* dan el mismo árbol, salvo el 4 y el 8:** los cortes son de una variable a la vez y escalar no cambia el orden de los valores. Los casos 4 y 8 difieren en 0.0013 de F1; lo atribuimos a empates entre umbrales equivalentes a profundidad 10.
 
 ![Importancia de características en los 8 casos](figuras/arbol_importancia.png){width=90%}
 
-`PUNT_C_NATURALES` concentra entre 0.749 y 0.840 de la importancia y `PUNT_LECTURA_CRITICA` es la segunda (0.074–0.139). Los otros puntajes casi no aparecen porque están correlacionados con ciencias. Con balanceo entran `EDAD` (0.043–0.062) y `FAMI_TIENECOMPUTADOR_Si`.
+`PUNT_C_NATURALES` concentra entre 0.584 y 0.840 de la importancia y `PUNT_LECTURA_CRITICA` es la segunda (0.074–0.139). Los otros puntajes casi no aparecen porque están correlacionados con ciencias. Con balanceo entran `EDAD` (0.047–0.068) y `FAMI_TIENECOMPUTADOR_Si`.
 
 ![Árbol solución con Gini del caso 1](figuras/arbol_caso1.png)
 
@@ -159,8 +184,8 @@ Elegimos *k* (impares de 1 a 51) con el accuracy promedio de una validación cru
 
 ![k frente a accuracy de la validación cruzada de 5 folds](figuras/knn_k.png){width=90%}
 
-- **Desbalanceados (k = 37–51):** la curva queda casi plana desde k ≈ 9 (0.77–0.79). Ese accuracy está inflado porque los folds tienen 70 % de Nivel 3; en validación real baja a 0.548–0.591.
-- **Casos 2, 4 y 6 (k = 1):** la validación cruzada da 0.817–0.828 porque un registro sintético de SMOTENC suele tener su "registro de origen" en el mismo fold. En validación real, k = 1 baja a 0.521–0.591. **Caso 8:** k = 11.
+- **Desbalanceados (k = 17–47):** la curva queda casi plana desde k ≈ 9 (0.76–0.80). Ese accuracy está inflado porque los folds tienen 70 % de Nivel 3; en validación real baja a 0.548–0.603.
+- **Balanceados (k = 1 en los 4 casos):** en los casos 2 y 4 la validación cruzada da 0.816–0.828 porque un registro sintético de SMOTENC suele tener su "registro de origen" en el mismo fold. En validación real, k = 1 baja a 0.515–0.588. En los casos 6 y 8 la ventaja de k = 1 es mínima (0.734 y 0.728).
 - Dejamos el *k* del criterio del enunciado y lo reportamos como ejemplo de que el accuracy engaña.
 
 ![Vecinos de los 3 datos de prueba (estrellas), PCA a 2D](figuras/knn_vecinos.png){width=85%}
@@ -171,13 +196,13 @@ Los vecinos los calcula el modelo en las 65 columnas; PCA solo se usa para dibuj
 
 Evaluamos 12 configuraciones por caso con el F1 macro de validación: lineal con C ∈ {0.01, 0.1, 1} y RBF con C ∈ {0.1, 1, 10} × gamma ∈ {scale, 0.01, 0.1}. No usamos `GridSearchCV` porque, con SMOTENC, la validación cruzada resulta optimista.
 
-- **Kernel:** el lineal gana en 7 de 8 casos (en el caso 2 el RBF gana por 0.007). La frontera entre niveles es casi lineal porque los puntajes se mueven juntos y el objetivo es ordinal.
-- **C:** casi no cambia el resultado del lineal. En el RBF, un C alto sobreajusta: en el caso 8, con C = 10, entrenamiento 0.923 y validación 0.648.
-- **gamma:** es lo más sensible a la escala. Con gamma = 0.1 el F1 de validación cae a 0.31–0.42 en el caso 4 (sin escalar), frente a 0.58–0.60 en el caso 8.
+- **Kernel:** el lineal gana en los 4 casos desbalanceados y el RBF en los 4 balanceados, pero siempre por menos de 0.01, así que en estos últimos son equivalentes. La frontera entre niveles es casi lineal porque los puntajes se mueven juntos y el objetivo es ordinal.
+- **C:** casi no cambia el resultado del lineal. En el RBF, un C alto sobreajusta: en el caso 8, con C = 10 y gamma = scale, entrenamiento 0.921 y validación 0.643.
+- **gamma:** es lo más sensible a la escala. Con gamma = 0.1 el F1 de validación cae a 0.31–0.43 en el caso 4 (sin escalar), frente a 0.56–0.61 en el caso 8, donde es la mejor opción.
 
 ![Regiones de decisión de la SVM registrada (PCA a 2D)](figuras/svm_regiones.png){width=85%}
 
-Para las regiones llevamos una malla del plano PCA a las 65 columnas con `inverse_transform` y la clasificamos con el modelo registrado. En los 8 casos salen franjas ordenadas de Nivel 1 a Nivel 4 a lo largo de PC1. Sin balanceo, la franja de Nivel 2 casi desaparece, lo que concuerda con su recall de 0.12–0.14.
+Para las regiones llevamos una malla del plano PCA a las 65 columnas con `inverse_transform` y la clasificamos con el modelo registrado. En los 8 casos salen franjas ordenadas de Nivel 1 a Nivel 4 a lo largo de PC1; con RBF (casos 6 y 8) la frontera de Nivel 4 se curva. Sin balanceo, la franja de Nivel 2 casi desaparece, lo que concuerda con su recall de 0.12–0.14.
 
 ### 4.4 Redes neuronales *(sección 6.2)*
 
@@ -185,35 +210,37 @@ Configuramos la red en el caso 8 cambiando un aspecto a la vez y usamos la misma
 
 | Etapa | Variantes (F1 de validación) | Elegida |
 |---|---|---|
-| Activación | ReLU 0.5975 · tanh 0.6006 · sigmoid 0.5895 | ReLU (tanh mejora solo 0.003) |
-| Optimizador | Adam lr 0.001 · Adam lr 0.01 · SGD lr 0.1 (0.4816) | Adam lr 0.001 (con lr 0.01 sobreajusta desde la época 3) |
-| Regularización | Ninguna 0.5975 · Dropout 0.3: 0.6207 · L2 0.01: 0.6035 · ambas 0.6101 | Dropout 0.3 |
-| Arquitectura | [32] 0.6083 · [64, 32] 0.6207 · [128, 64] 0.6061 | [64, 32] |
+| Activación | ReLU 0.5766 · tanh 0.5953 · sigmoid 0.5883 | tanh (+0.019) |
+| Optimizador | Adam lr 0.001: 0.5953 · Adam lr 0.01: 0.6077 · SGD lr 0.1: 0.5786 | Adam lr 0.01 (+0.012) |
+| Regularización | Ninguna 0.6077 · L2 0.01: 0.6295 · Dropout 0.3: 0.5791 · ambas 0.6153 | L2 0.01 |
+| Arquitectura | [32] 0.6092 · [64, 32] 0.6295 · [128, 64] 0.6262 | [64, 32] |
 
-**Arquitectura final:** `Input(65) → Dense(64, ReLU) → Dropout(0.3) → Dense(32, ReLU) → Dropout(0.3) → Dense(4, softmax)`, Adam (lr = 0.001), pérdida `sparse_categorical_crossentropy`, lotes de 32 y hasta 150 épocas. **Callback:** EarlyStopping sobre la pérdida de validación, con paciencia 10 y restaurando los mejores pesos. Sin regularización, la pérdida de validación sube desde la época 5; con Dropout la mejor época pasa a la 11 y la brecha baja de 0.246 a 0.174.
+**Arquitectura final:** `Input(65) → Dense(64, tanh, L2 0.01) → Dense(32, tanh, L2 0.01) → Dense(4, softmax)`, Adam (lr = 0.01), pérdida `sparse_categorical_crossentropy`, lotes de 32 y hasta 150 épocas. **Callback:** EarlyStopping sobre la pérdida de validación, con paciencia 10 y restaurando los mejores pesos. Con lr = 0.01 y sin regularización, la pérdida de validación es mínima en la primera época y luego sube; con L2 la mejor época pasa a la 7 y la brecha entre validación y entrenamiento baja de 0.093 a 0.064.
 
 ![Pérdida de entrenamiento y validación por época](figuras/red_curvas.png){width=90%}
 
-EarlyStopping detiene el entrenamiento entre las épocas 19 y 37. En los casos 1 y 3 (sin escalar y desbalanceados) la red no aprende Nivel 2 ni Nivel 4 (F1 de prueba 0.31), ni siquiera con paciencia 30. En los casos 2 y 4, también sin escalar pero balanceados, sí aprende las cuatro clases.
+EarlyStopping detiene el entrenamiento entre las épocas 12 y 22, con la mejor época entre la 2 y la 12. En los casos 1 y 3 (sin escalar y desbalanceados) la red no aprende Nivel 2 ni Nivel 4 (F1 de prueba de 0.31 y 0.30), ni siquiera con paciencia 30, y el caso 7 tampoco predice Nivel 2. En los casos 2 y 4, sin escalar pero balanceados, sí aprende las cuatro clases, aunque el accuracy de validación oscila entre épocas.
 
 ### 4.5 Evaluación de los 3 datos de prueba
 
-Los registros de Nivel 1 y Nivel 3 se clasifican bien en casi todos los casos y técnicas. El de Nivel 4 se predice como Nivel 3 en las cuatro técnicas y los 8 casos. El balanceo sube su probabilidad de Nivel 4 (en la SVM, de 0.054–0.076 a 0.116–0.236), pero no lo suficiente para cambiar la predicción.
+Los registros de Nivel 1 y Nivel 3 se clasifican bien en casi todos los casos y técnicas. El de Nivel 4 se predice como Nivel 3 en las cuatro técnicas y los 8 casos. En la SVM, el balanceo sube su probabilidad de Nivel 4 solo sin escalado (de 0.061–0.076 en los casos 1 y 3 a 0.255–0.382 en los casos 2 y 4), pero no lo suficiente para cambiar la predicción.
 
-## 5. Evaluación de los modelos supervisados *(notebook: sección 7, pendiente)*
+Con los **3 estudiantes hipotéticos** (los mismos de la sección 9.2), ninguna técnica invierte el orden de los perfiles en ningún caso. El perfil bajo sale como Nivel 1 y el alto como Nivel 4 en 30 de las 32 predicciones cada uno. El perfil medio, justo en el corte entre Nivel 2 y Nivel 3, sale como Nivel 3 en 25 y como Nivel 2 en 7, todas en casos balanceados: es el efecto del balanceo visto en un solo estudiante.
+
+## 5. Evaluación de los modelos supervisados *(notebook: sección 7)*
 
 ### 5.1 Figura 1 (prueba, promedio macro)
 
 | # | Norm. | Out. | Bal. | Árbol Acc | Árbol Prec | Árbol Rec | Árbol F1 | KNN Acc | KNN Prec | KNN Rec | KNN F1 | SVM Acc | SVM Prec | SVM Rec | SVM F1 | Red Acc | Red Prec | Red Rec | Red F1 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | ED NO | NO | NO | 0.606 | 0.606 | 0.542 | 0.537 | 0.596 | 0.658 | 0.569 | 0.525 | 0.590 | 0.584 | 0.579 | 0.519 | 0.537 | 0.241 | 0.443 | 0.309 |
-| 2 | ED NO | NO | SI | 0.621 | 0.555 | 0.626 | 0.574 | 0.578 | 0.504 | 0.564 | 0.525 | 0.643 | 0.574 | 0.701 | **0.605** | 0.610 | 0.539 | 0.656 | 0.568 |
-| 3 | ED NO | SI | NO | 0.617 | 0.618 | 0.525 | 0.531 | 0.570 | 0.638 | 0.560 | 0.483 | 0.589 | 0.601 | 0.564 | 0.516 | 0.528 | 0.265 | 0.384 | 0.307 |
-| 4 | ED NO | SI | SI | 0.630 | 0.558 | 0.657 | 0.586 | 0.577 | 0.502 | 0.553 | 0.521 | 0.645 | 0.567 | 0.665 | 0.595 | 0.638 | 0.560 | 0.639 | 0.585 |
-| 5 | ED SI | NO | NO | 0.606 | 0.606 | 0.542 | 0.537 | 0.564 | 0.625 | 0.475 | 0.438 | 0.588 | 0.582 | 0.572 | 0.515 | 0.562 | 0.565 | 0.556 | 0.467 |
-| 6 | ED SI | NO | SI | 0.621 | 0.555 | 0.626 | 0.574 | 0.495 | 0.426 | 0.495 | 0.439 | 0.637 | 0.557 | 0.660 | 0.585 | 0.640 | 0.559 | 0.643 | 0.584 |
-| 7 | ED SI | SI | NO | 0.617 | 0.618 | 0.525 | 0.531 | 0.550 | 0.628 | 0.466 | 0.429 | 0.587 | 0.601 | 0.562 | 0.514 | 0.607 | 0.613 | 0.582 | 0.540 |
-| 8 | ED SI | SI | SI | 0.630 | 0.558 | 0.657 | 0.586 | 0.517 | 0.473 | 0.606 | 0.489 | 0.644 | 0.566 | 0.665 | 0.594 | 0.642 | 0.563 | 0.651 | 0.587 |
+| 1 | ED NO | NO | NO | 0.605 | 0.606 | 0.542 | 0.537 | 0.596 | 0.594 | 0.562 | 0.523 | 0.590 | 0.583 | 0.579 | 0.519 | 0.546 | 0.244 | 0.446 | 0.313 |
+| 2 | ED NO | NO | SI | 0.618 | 0.557 | 0.630 | 0.580 | 0.579 | 0.506 | 0.568 | 0.527 | 0.643 | 0.574 | 0.701 | 0.605 | 0.541 | 0.539 | 0.637 | 0.520 |
+| 3 | ED NO | SI | NO | 0.617 | 0.618 | 0.525 | 0.531 | 0.568 | 0.618 | 0.557 | 0.480 | 0.589 | 0.601 | 0.564 | 0.516 | 0.516 | 0.242 | 0.451 | 0.297 |
+| 4 | ED NO | SI | SI | 0.610 | 0.532 | 0.602 | 0.555 | 0.580 | 0.507 | 0.556 | 0.525 | 0.636 | 0.569 | 0.698 | 0.601 | 0.557 | 0.585 | 0.591 | 0.540 |
+| 5 | ED SI | NO | NO | 0.605 | 0.606 | 0.542 | 0.537 | 0.563 | 0.625 | 0.475 | 0.438 | 0.588 | 0.582 | 0.572 | 0.515 | 0.599 | 0.717 | 0.499 | 0.475 |
+| 6 | ED SI | NO | SI | 0.618 | 0.557 | 0.630 | 0.580 | 0.496 | 0.428 | 0.498 | 0.441 | 0.638 | 0.550 | 0.614 | 0.572 | 0.662 | 0.583 | 0.668 | 0.605 |
+| 7 | ED SI | SI | NO | 0.617 | 0.618 | 0.525 | 0.531 | 0.550 | 0.628 | 0.466 | 0.429 | 0.587 | 0.601 | 0.562 | 0.513 | 0.547 | 0.373 | 0.599 | 0.457 |
+| 8 | ED SI | SI | SI | 0.609 | 0.531 | 0.602 | 0.553 | 0.485 | 0.418 | 0.481 | 0.434 | 0.655 | 0.568 | 0.623 | 0.588 | 0.690 | 0.630 | 0.644 | **0.636** |
 
 En todos los casos la normalización incluye CC(SI). Valores con 4 decimales en el notebook.
 
@@ -221,34 +248,52 @@ En todos los casos la normalización incluye CC(SI). Valores con 4 decimales en 
 
 ![F1 macro máximo por algoritmo](figuras/f1_maximo.png){width=60%}
 
-![F1 macro medio por normalización, outliers y balanceo](figuras/f1_por_factor.png)
+![F1 macro medio por normalización (escalado) y algoritmo](figuras/f1_normalizacion.png){width=70%}
+
+![F1 macro medio por manejo de outliers y algoritmo](figuras/f1_outliers.png){width=70%}
+
+![F1 macro medio por balanceo y algoritmo](figuras/f1_balanceo.png){width=70%}
 
 ### 5.3 Análisis
 
-- **El balanceo es el factor dominante.** Sin balanceo, el recall de Nivel 2 queda entre 0 y 0.27, y la red de los casos 1 y 3 no asigna ningún registro a Nivel 2 ni a Nivel 4. Con SMOTENC sube a 0.45–0.60, y el F1 medio mejora en las cuatro técnicas: árbol de 0.534 a 0.580, KNN de 0.469 a 0.494, SVM de 0.516 a 0.595 y red de 0.406 a 0.581.
-- **Por qué el accuracy engaña.** En los casos desbalanceados, KNN tiene un accuracy de 0.55–0.60 pero detecta solo entre el 3 % y el 12 % del Nivel 2. El accuracy se sostiene porque acierta más del 90 % del Nivel 3, que es casi la mitad de la prueba.
-- **Sensibilidad a la escala.** Árbol: no cambia (0.557 en ambos). KNN: empeora (0.514 a 0.449), porque sin escalar la distancia la deciden los puntajes, y al escalar las 55 dummies y las ordinales ganan peso aunque casi no aportan. SVM: casi no cambia (0.559 y 0.552), porque la búsqueda elige kernel lineal o `gamma="scale"`. Red: mejora (0.442 a 0.545), y la diferencia viene de los casos 1 y 3.
-- **Outliers.** Sin efecto consistente: menos de 0.003 de F1 en árbol, KNN y SVM. En la red sube de 0.482 a 0.505, pero solo por el par de casos 5 y 7. El 5 % de atípicos queda absorbido por el margen suave de la SVM y la regularización de la red.
-- **Comparación.** La SVM es la más estable y tiene el mejor F1 (0.605, caso 2). La red y el árbol quedan a menos de 0.02, que con una sola semilla no consideramos concluyente. KNN es el más débil en todos los casos.
+- **El balanceo es el factor dominante.** Sin balanceo, el recall de Nivel 2 queda entre 0 y 0.27, y la red de los casos 1 y 3 no asigna ningún registro a Nivel 2 ni a Nivel 4. Con SMOTENC sube a 0.45–0.85, y el F1 medio mejora en las cuatro técnicas: árbol de 0.534 a 0.567, KNN de 0.468 a 0.482, SVM de 0.516 a 0.592 y red de 0.385 a 0.575. Parte del efecto puede venir del tamaño del entrenamiento: sin balanceo se entrena con 2050–2170 registros reales, y con balanceo con todos los reales más los sintéticos (8208–8296). El patrón de errores sí apunta a la distribución de clases, porque sin balanceo casi no se predice Nivel 2.
+- **Por qué el accuracy engaña.** En los casos desbalanceados, KNN tiene un accuracy de 0.55–0.60 pero detecta solo entre el 3 % y el 18 % del Nivel 2. El accuracy se sostiene porque acierta más del 90 % del Nivel 3, que es casi la mitad de la prueba. La red de los casos 1 y 3 nunca predice Nivel 2 ni Nivel 4, y aun así su accuracy (0.546 y 0.516) supera al de la regla trivial "siempre Nivel 3" (0.466).
+- **Sensibilidad a la escala.** Árbol: no cambia (0.551 y 0.550). KNN: empeora (0.514 a 0.435), porque sin escalar la distancia la deciden los puntajes, y al escalar las 55 dummies y las ordinales ganan peso aunque casi no aportan. SVM: baja un poco (0.560 a 0.547), solo en los casos balanceados, donde usa RBF, que también mide distancias. Red: mejora (0.418 a 0.543) en los cuatro pares de casos; sin escalar, su entrenamiento es inestable.
+- **Outliers.** Ningún algoritmo cambia su F1 medio en 0.02 o más (árbol −0.016, KNN −0.015, SVM +0.002, red +0.005). Las caídas mayores por par coinciden con cambios del hiperparámetro elegido: profundidad 10 en lugar de 5 en el árbol, y k = 47 en lugar de 17 en KNN. El 5 % de atípicos queda amortiguado por los cortes del árbol, el margen suave de la SVM y la regularización de la red.
+- **Comparación.** La red del caso 8 tiene el mejor F1 (0.636), pero es la técnica más dependiente del preprocesamiento (0.297–0.636 entre casos). La SVM es la más robusta: primera o segunda en 6 de los 8 casos, con su mejor F1 en el caso 2 (0.605). Sin balanceo gana siempre el árbol. KNN nunca es el mejor.
 
 ### 5.4 Costo de los errores y métrica priorizada
 
-![Matrices de confusión del caso 8: árbol y KNN (arriba), SVM y red (abajo)](figuras/matrices_caso8.png){width=55%}
+![Matrices de confusión del caso 8: árbol, KNN, SVM y red](figuras/matrices_caso8.png)
 
-En un uso de alerta temprana, el error más costoso es un **falso negativo en Nivel 1**: un estudiante en riesgo que no recibe apoyo. Un falso positivo (dar refuerzo a un estudiante de Nivel 2) cuesta mucho menos. Por eso, además del F1 macro, priorizamos el **recall de Nivel 1**. En el caso 8, la red detecta más estudiantes de Nivel 1 (0.711), seguida de la SVM (0.667), el árbol (0.658) y KNN (0.640). La precisión de Nivel 1 queda entre 0.33 y 0.45, y sus falsas alarmas son casi siempre de Nivel 2. Además, solo entre 14 y 26 errores por modelo saltan más de un nivel: casi todos son entre niveles vecinos.
+**Reporte por clase del caso 8** (prueba; cada celda es precisión / recall / F1):
+
+| Clase (registros) | Árbol | KNN | SVM | Red neuronal |
+|---|---|---|---|---|
+| Nivel 1 (114) | 0.414 / 0.526 / 0.463 | 0.301 / 0.456 / 0.362 | 0.500 / 0.596 / 0.544 | 0.561 / 0.526 / 0.543 |
+| Nivel 2 (349) | 0.586 / 0.585 / 0.585 | 0.469 / 0.453 / 0.461 | 0.638 / 0.630 / 0.634 | 0.658 / 0.639 / 0.648 |
+| Nivel 3 (444) | 0.757 / 0.644 / 0.696 | 0.651 / 0.516 / 0.575 | 0.777 / 0.698 / 0.735 | 0.764 / 0.779 / 0.771 |
+| Nivel 4 (46) | 0.366 / 0.652 / 0.469 | 0.253 / 0.500 / 0.336 | 0.356 / 0.565 / 0.437 | 0.537 / 0.630 / 0.580 |
+| **Macro** | 0.531 / 0.602 / 0.553 | 0.418 / 0.481 / 0.434 | 0.568 / 0.623 / 0.588 | 0.630 / 0.644 / 0.636 |
+
+Nivel 3 es la clase mejor detectada por los cuatro modelos (F1 de 0.575–0.771). Las clases minoritarias son las más difíciles: Nivel 4 (F1 de 0.336–0.580) y Nivel 1 (0.362–0.544). En Nivel 4, todos los modelos tienen más recall que precisión (0.500–0.652 frente a 0.253–0.537): con el balanceo predicen Nivel 4 con más frecuencia, a costa de falsas alarmas entre estudiantes de Nivel 3. En Nivel 1 pasa lo mismo, salvo en la red, que es más precisa (0.561) que exhaustiva (0.526). De ahí sale el compromiso entre la SVM y la red que discutimos a continuación.
+
+En un uso de alerta temprana, el error más costoso es un **falso negativo en Nivel 1**: un estudiante en riesgo que no recibe apoyo. Un falso positivo (dar refuerzo a un estudiante de Nivel 2) cuesta mucho menos. Por eso priorizamos el **recall de Nivel 1**, sin sacrificar el F1 macro: el recall solo no basta, porque la red del caso 3 llega a 0.939 asignando Nivel 1 a 408 de los 953 estudiantes. En el caso 8, la SVM detecta más estudiantes de Nivel 1 (0.596), seguida de la red y el árbol (0.526) y de KNN (0.456). La red tiene menos falsas alarmas (47, frente a 68 de la SVM), y en ambos modelos casi todas son estudiantes de Nivel 2. Solo entre 8 y 35 errores por modelo saltan más de un nivel: casi todos son entre niveles vecinos. Para la alerta temprana preferimos la SVM del caso 4 (recall de Nivel 1 de 0.711 con F1 macro de 0.601) a la red del caso 8 (0.526 y 0.636). Como esta comparación usa la prueba, la presentamos como análisis y no como selección de hiperparámetros.
 
 ### 5.5 Curvas ROC y Precision-Recall del caso 8
 
-![Curvas ROC y Precision-Recall del caso 8 (promedio macro One-vs-Rest)](figuras/roc_pr_caso8.png){width=85%}
+![Curvas ROC y Precision-Recall del caso 8, micro-promediadas (One-vs-Rest)](figuras/roc_pr_caso8.png){width=85%}
 
-| Modelo | AUC-ROC macro | AP macro | AUC Nivel 4 | AP Nivel 4 |
-|---|---|---|---|---|
-| Red neuronal | 0.874 | 0.632 | 0.946 | 0.555 |
-| SVM | 0.872 | 0.646 | 0.947 | 0.598 |
-| Árbol | 0.851 | 0.578 | 0.908 | 0.410 |
-| KNN | 0.805 | 0.483 | 0.909 | 0.326 |
+Con 4 clases usamos One-vs-Rest. Las gráficas son micro-promediadas (las 4 columnas se tratan como un solo problema binario, con las funciones del notebook 6-02), para tener una curva por algoritmo. Como el micro-promedio lo dominan Nivel 3 y Nivel 2, también reportamos el promedio macro y el área de Nivel 4.
 
-La SVM y la red son prácticamente iguales en ROC y superan al árbol y a KNN en todo el rango. La diferencia se nota más en Precision-Recall, sobre todo en el Nivel 4. Le damos más peso a la curva PR porque la prueba está desbalanceada y la ROC resulta optimista con tantos negativos. Nivel 2 es la clase con menor AUC en los cuatro modelos (0.72–0.81). Para el caso 8 elegiríamos la SVM si se busca el mejor balance, o la red si lo prioritario es no dejar pasar estudiantes de Nivel 1.
+| Modelo | AUC micro | AP micro | AUC macro | AP macro | AUC Nivel 4 | AP Nivel 4 |
+|---|---|---|---|---|---|---|
+| Red neuronal | 0.904 | 0.727 | 0.880 | 0.664 | 0.955 | 0.633 |
+| SVM | 0.894 | 0.695 | 0.870 | 0.606 | 0.944 | 0.406 |
+| Árbol | 0.809 | 0.537 | 0.768 | 0.464 | 0.812 | 0.297 |
+| KNN | 0.657 | 0.364 | 0.646 | 0.332 | 0.713 | 0.151 |
+
+La red y la SVM superan claramente al árbol y a KNN. KNN usa k = 1 en el caso 8, así que solo da probabilidades de 0 o 1 y su curva ROC es un único punto. ROC y PR no ordenan igual las clases: Nivel 4 tiene el mayor AUC (0.944–0.955 en la SVM y la red), pero en la SVM es la clase con menor AP (0.406). Sus 47 falsas alarmas de Nivel 4 apenas mueven la tasa de falsos positivos (hay 907 negativos), pero superan a sus 26 aciertos. Por eso le damos más peso a la curva PR. La diferencia entre la red y la SVM está justamente en Nivel 4 (AP de 0.633 frente a 0.406). Nivel 2 es la clase más difícil de separar (AUC de 0.81–0.82 en la SVM y la red). Para el caso 8 elegimos la red; para la alerta temprana, la SVM (sección 5.4).
 
 # Módulo 2 – Aprendizaje no supervisado
 
@@ -269,7 +314,7 @@ Usamos `init="k-means++"`, `n_init=10` y `random_state=79`, con K de 2 a 10. El 
 
 ## 8. DBSCAN *(notebook: sección 8.2)*
 
-MinPts = 2 × 65 características = **130** (regla del enunciado y de la diapositiva 6-03), y ε en el codo del gráfico de k-distancia con k = MinPts (ε entre 3.65 y 16.55).
+MinPts = 2 × 65 características = **130** (regla del enunciado y de la diapositiva 6-03), y ε en el codo del gráfico de k-distancia con k = MinPts (ε entre 3.64 y 16.55).
 
 ![Gráfico de k-distancia y ε del codo](figuras/kdistancia.png){width=90%}
 
@@ -285,13 +330,13 @@ MinPts = 2 × 65 características = **130** (regla del enunciado y de la diaposi
 | # | Normalización | Outliers | Balanceo | K-Means inercia | K-Means silhouette | DBSCAN silhouette (regla) | DBSCAN silhouette (complementario) |
 |---|---|---|---|---|---|---|---|
 | 1 | CC(SI) y ED(NO) | NO | NO | 519 267.7 | 0.4308 | No definido (1 cluster) | 0.3848 |
-| 2 | CC(SI) y ED(NO) | NO | SI | 2 042 146.0 | 0.5559 | No definido (1 cluster) | 0.4319 |
+| 2 | CC(SI) y ED(NO) | NO | SI | 2 041 851.6 | 0.5559 | No definido (1 cluster) | 0.4347 |
 | 3 | CC(SI) y ED(NO) | SI | NO | 701 971.7 | 0.4118 | No definido (1 cluster) | 0.2197 |
-| 4 | CC(SI) y ED(NO) | SI | SI | 2 421 380.6 | 0.5472 | No definido (1 cluster) | 0.4737 |
+| 4 | CC(SI) y ED(NO) | SI | SI | 2 421 051.1 | 0.5472 | No definido (1 cluster) | 0.4770 |
 | 5 | CC(SI) y ED(SI) | NO | NO | 22 278.7 | 0.1760 | No definido (1 cluster) | 0.2122 |
-| 6 | CC(SI) y ED(SI) | NO | SI | 79 754.1 | 0.2426 | No definido (1 cluster) | 0.3805 |
+| 6 | CC(SI) y ED(SI) | NO | SI | 79 747.8 | 0.2427 | No definido (1 cluster) | 0.3890 |
 | 7 | CC(SI) y ED(SI) | SI | NO | 24 075.9 | 0.1694 | No definido (1 cluster) | 0.0249 |
-| 8 | CC(SI) y ED(SI) | SI | SI | 81 264.8 | 0.2461 | No definido (1 cluster) | 0.4486 |
+| 8 | CC(SI) y ED(SI) | SI | SI | 81 254.4 | 0.2462 | No definido (1 cluster) | 0.4420 |
 
 La inercia no es comparable entre casos (depende del número de registros y de la escala).
 
@@ -304,7 +349,7 @@ En K-Means, el escalado es el factor que más mueve el silhouette (0.486 sin esc
 Cubrimos las dos lecturas posibles del enunciado:
 
 - **Registros reales** (los mismos 3 del módulo supervisado): K-Means asigna el de Nivel 1 a C0 y los de Nivel 3 y Nivel 4 a C1 en los 8 casos. DBSCAN con la regla los asigna a su único cluster, excepto al de Nivel 1 en los casos 2, 5 y 6, que queda como ruido por ser un punto extremo. Para asignar en DBSCAN, que no tiene `predict`, usamos el *core sample* más cercano a menos de ε.
-- **Estudiantes hipotéticos**, construidos a mano como el "nuevo vino" del notebook 6-03:
+- **Estudiantes hipotéticos**, construidos a mano como el "nuevo vino" del notebook 6-03 (los mismos que usa el módulo supervisado, sección 4.5):
 
 | Perfil | Puntajes | Contexto | K-Means (8 casos) |
 |---|---|---|---|
@@ -330,24 +375,26 @@ El perfil medio queda en C0 porque la frontera entre clusters está cerca de los
 
 Sin escalar, PC1 explica el 73–87 % de la varianza (el puntaje); con escalado, el 28–37 %. En ninguna proyección hay un espacio vacío entre los clusters de K-Means: es una nube continua cortada por la mitad.
 
-| Cluster | Lectura crítica (media) | Estrato | Educación madre (código) | Edad | % Nivel 1 | % Nivel 4 |
-|---|---|---|---|---|---|---|
-| C0 – desempeño bajo | 45–49 | 1.7–2.0 | 3.3–3.9 | 17.1–18.0 | 19–42 % | 0.0–0.4 % |
-| C1 – desempeño alto | 64–67 | 2.4–2.6 | 5.3–6.0 | 16.5–16.9 | 0.1–0.4 % | 19–61 % |
+| Cluster | Lectura crítica (media) | Estrato mediano | En estrato 3 o más | Educación de la madre (mediana) | Edad (media) | % Nivel 1 | % Nivel 4 |
+|---|---|---|---|---|---|---|---|
+| C0 – desempeño bajo | 45–49 | 2 | 15–25 % | Bachillerato completo (incompleto en los casos 6 y 8) | 17.1–18.0 | 19–42 % | 0.0–0.4 % |
+| C1 – desempeño alto | 64–67 | 2 | 40–49 % | Técnica o tecnológica completa (6 de 8 casos) | 16.5–16.9 | 0.1–0.4 % | 19–61 % |
+
+El estrato y la educación de la madre son ordinales, así que los resumimos con la mediana y con porcentajes, no con el promedio de sus códigos. El estudiante mediano es de estrato 2 en ambos clusters: la diferencia socioeconómica está en la distribución, porque C1 tiene entre 1.7 y 3.1 veces más estudiantes en estrato 3 o superior.
 
 ![Validación externa de K-Means: composición de niveles reales en cada cluster](figuras/validacion_externa.png){width=90%}
 
-**Validación externa.** Los clusters separan bien los extremos (C0 casi no tiene Nivel 4 y C1 casi no tiene Nivel 1), pero no los niveles intermedios. En los casos desbalanceados, Nivel 3 es el 60–62 % de C0 y el 78–79 % de C1. En los balanceados, C0 mezcla Nivel 1 y 2 y C1 mezcla Nivel 3 y 4.
+**Validación externa.** Los clusters separan bien los extremos (C0 casi no tiene Nivel 4 y C1 casi no tiene Nivel 1), pero no los niveles intermedios. En los casos desbalanceados, Nivel 3 es el 60–62 % de C0 y el 78–80 % de C1. En los balanceados, C0 mezcla Nivel 1 y 2 y C1 mezcla Nivel 3 y 4.
 
-**Interpretación en el dominio.** Los puntajes de las cinco áreas se mueven juntos y acompañan al estrato y a la educación de los padres. Sin la etiqueta, lo que aparece es un eje de "desempeño general", no cuatro niveles. Es el mismo patrón de los modelos supervisados, que aciertan los extremos y confunden niveles vecinos. Los clusters de la prueba complementaria de DBSCAN son muy puros en los casos balanceados (caso 8: 89 % de Nivel 4 en C0), pero como son sobre todo registros sintéticos y dejan el 83 % como ruido, no los interpretamos como grupos reales.
+**Interpretación en el dominio.** Los puntajes de las cinco áreas se mueven juntos y acompañan al estrato y a la educación de los padres. Sin la etiqueta, lo que aparece es un eje de "desempeño general", no cuatro niveles. Es el mismo patrón de los modelos supervisados, que aciertan los extremos y confunden niveles vecinos. Los clusters de la prueba complementaria de DBSCAN son muy puros en los casos balanceados (caso 8: 90 % de Nivel 4 en C0), pero como son sobre todo registros sintéticos y dejan el 82 % como ruido, no los interpretamos como grupos reales.
 
 # Conclusiones
 
-1. **El balanceo fue el preprocesamiento más influyente.** Mejoró el F1 macro de las cuatro técnicas y fue la diferencia entre que la red aprendiera las cuatro clases o solo la mayoritaria. Con clases desbalanceadas, el accuracy no sirve para comparar modelos.
-2. **El escalado depende del modelo.** No cambia los árboles, es necesario para la red, la SVM se adapta sola con buenos hiperparámetros, y en KNN empeora el resultado porque da peso a variables que no aportan.
+1. **El balanceo fue el preprocesamiento más influyente.** Mejoró el F1 macro de las cuatro técnicas (de +0.014 en KNN a +0.190 en la red) y fue la diferencia entre que la red aprendiera las cuatro clases o casi solo la mayoritaria. Parte del efecto puede venir del mayor tamaño del entrenamiento balanceado. Con clases desbalanceadas, el accuracy no sirve para comparar modelos.
+2. **El escalado depende del modelo.** No cambia los árboles y es necesario para la red. En KNN y en la SVM con RBF empeora el resultado, porque da peso en la distancia a variables que casi no aportan; con kernel lineal, la SVM no cambia.
 3. **Los outliers, al 5 %, no tuvieron un efecto apreciable** en ninguno de los seis algoritmos.
-4. **La SVM fue la técnica supervisada más estable** (F1 de 0.605). La red la iguala en el caso 8 y es la que más estudiantes de Nivel 1 detecta. El árbol queda muy cerca y es el único explicable con reglas simples ("ciencias ≤ 40 y lectura ≤ 46"). KNN fue el más débil.
-5. **El aprendizaje no supervisado explica el techo de los clasificadores** (F1 cercano a 0.6). K-Means solo encuentra dos perfiles, bajo y alto, asociados al estrato y a la educación de los padres, y DBSCAN no encuentra separaciones de densidad. El desempeño es un continuo, y los niveles del ICFES son cortes sobre él: por eso los errores son entre niveles vecinos y Nivel 2 es el más difícil.
+4. **La red del caso 8 obtuvo el mejor resultado** (F1 de 0.636), pero es la técnica más sensible al preprocesamiento. La SVM fue la más robusta (primera o segunda en 6 de los 8 casos) y la que más estudiantes de Nivel 1 detecta, por eso es la preferida para la alerta temprana. El árbol fue el mejor sin balanceo y el único explicable con reglas simples ("ciencias ≤ 40 y lectura ≤ 46"). KNN fue el más débil.
+5. **El aprendizaje no supervisado explica el techo de los clasificadores** (F1 máximo de 0.64). K-Means solo encuentra dos perfiles, bajo y alto, asociados al estrato y a la educación de los padres, y DBSCAN no encuentra separaciones de densidad. El desempeño es un continuo, y los niveles del ICFES son cortes sobre él: por eso los errores son entre niveles vecinos y Nivel 2 es el más difícil.
 6. **SMOTENC cambia la geometría de los datos.** Crea zonas densas artificiales que DBSCAN detecta como clusters y que inflan la validación cruzada de KNN. Hay que tenerlo en cuenta al leer métricas calculadas sobre datos balanceados.
 
 # Referencias
@@ -355,3 +402,45 @@ Sin escalar, PC1 explica el 73–87 % de la varianza (el puntaje); con escalado,
 - ICFES. *Resultados únicos Saber 11*, aplicaciones 2022-1 y 2022-2. Datos abiertos.
 - Guzmán Luna, J. A. Diapositivas y notebooks del curso Introducción a la Inteligencia Artificial (5-01 a 7-06). Universidad Nacional de Colombia, 2026.
 - Documentación de scikit-learn, imbalanced-learn (SMOTENC) y TensorFlow/Keras.
+
+# Anexo A. Descripción de las variables
+
+| # | Variable | Descripción | Tipo | ¿Se usa? |
+|---|---|---|---|---|
+| 1 | `PUNT_LECTURA_CRITICA` | Puntaje en lectura crítica (0–100) | Numérica | Sí |
+| 2 | `PUNT_C_NATURALES` | Puntaje en ciencias naturales (0–100) | Numérica | Sí |
+| 3 | `PUNT_SOCIALES_CIUDADANAS` | Puntaje en sociales y ciudadanas (0–100) | Numérica | Sí |
+| 4 | `PUNT_INGLES` | Puntaje en inglés (0–100) | Numérica | Sí |
+| 5 | `ESTU_FECHANACIMIENTO` | Fecha de nacimiento | Fecha | Sí: se transforma en `EDAD` |
+| 6 | `FAMI_ESTRATOVIVIENDA` | Estrato de la vivienda (Sin estrato, 1–6) | Ordinal | Sí |
+| 7 | `FAMI_EDUCACIONMADRE` | Máximo nivel educativo de la madre | Ordinal | Sí |
+| 8 | `FAMI_EDUCACIONPADRE` | Máximo nivel educativo del padre | Ordinal | Sí |
+| 9 | `FAMI_CUARTOSHOGAR` | Número de cuartos del hogar | Ordinal | Sí |
+| 10 | `FAMI_PERSONASHOGAR` | Número de personas del hogar | Ordinal | Sí |
+| 11 | `COLE_AREA_UBICACION` | Colegio urbano o rural | Nominal | Sí |
+| 12 | `COLE_BILINGUE` | Colegio bilingüe (S/N) | Nominal | Sí |
+| 13 | `COLE_CARACTER` | Académico, técnico o técnico/académico | Nominal | Sí |
+| 14 | `COLE_DEPTO_UBICACION` | Departamento del colegio (33) | Nominal | Sí |
+| 15 | `COLE_GENERO` | Colegio mixto, femenino o masculino | Nominal | Sí |
+| 16 | `COLE_JORNADA` | Mañana, tarde, única, completa, noche o sabatina | Nominal | Sí |
+| 17 | `COLE_NATURALEZA` | Oficial o no oficial | Nominal | Sí |
+| 18 | `COLE_SEDE_PRINCIPAL` | Si es la sede principal (S/N) | Nominal | Sí |
+| 19 | `ESTU_GENERO` | Género del estudiante (F/M) | Nominal | Sí |
+| 20 | `FAMI_TIENEAUTOMOVIL` | El hogar tiene automóvil (Sí/No) | Nominal | Sí |
+| 21 | `FAMI_TIENECOMPUTADOR` | El hogar tiene computador (Sí/No) | Nominal | Sí |
+| 22 | `FAMI_TIENEINTERNET` | El hogar tiene internet (Sí/No) | Nominal | Sí |
+| 23 | `FAMI_TIENELAVADORA` | El hogar tiene lavadora (Sí/No) | Nominal | Sí |
+| 24 | `COLE_MCPIO_UBICACION` | Municipio del colegio | Nominal | No: ~770 categorías; se usa el departamento |
+| 25 | `ESTU_MCPIO_RESIDE` | Municipio de residencia | Nominal | No: ~770 categorías |
+| 26 | `ESTU_MCPIO_PRESENTACION` | Municipio donde presentó la prueba | Nominal | No: ~450 categorías |
+| 27 | `ESTU_DEPTO_RESIDE` | Departamento de residencia | Nominal | No: Igual al del colegio en ~99 % |
+| 28 | `ESTU_DEPTO_PRESENTACION` | Departamento donde presentó la prueba | Nominal | No: Igual al del colegio en ~98 % |
+| 29 | `ESTU_PAIS_RESIDE` | País de residencia | Nominal | No: Duplica la nacionalidad |
+| 30 | `ESTU_NACIONALIDAD` | Nacionalidad | Nominal | No: 98.7 % colombianos (casi constante) |
+| 31 | `COLE_CALENDARIO` | Calendario A, B u otro | Nominal | No: 98.3 % calendario A (casi constante) |
+| 32 | `ESTU_PRIVADO_LIBERTAD` | Privado de la libertad (S/N) | Nominal | No: 99.9 % "N" (casi constante) |
+| 33 | `ESTU_ESTADOINVESTIGACION` | Estado del resultado | Nominal | No: Constante |
+| 34 | `ESTU_ESTUDIANTE` | Tipo de evaluado | Nominal | No: Constante |
+| 35 | `PERIODO` | Periodo de aplicación (2022-1 o 2022-2) | Administrativa | No: No describe al estudiante |
+| 36 | `DESEMP_INGLES` | Nivel de inglés (A−, A1, …, B+) | Ordinal | No: Es `PUNT_INGLES` en rangos (redundante) |
+| — | **`DESEMP_MATEMATICAS`** | **Nivel de desempeño en matemáticas (1–4)** | **Objetivo** | Objetivo (4 clases) |
