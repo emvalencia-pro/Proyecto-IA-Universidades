@@ -371,12 +371,44 @@ Si encuentran una inconsistencia, corríjanla en su sección o avísenle al resp
 - **Pendiente:** confirmar con el profesor la interpretación de "3 datos de prueba".
 
 #### Bloque 2 – Árboles y KNN
-- **Estado:** _sin iniciar_
+- **Estado:** sección 5 terminada.
+  - Árboles y KNN entrenados y registrados en los **8 casos** con `registrar_resultado`, y `predecir_demo` en los 8 casos.
+  - Árboles: curvas de `max_depth` contra accuracy (entrenamiento y validación) con Gini y entropía, tabla Gini frente a entropía, importancia de características, gráfico del árbol con Gini e interpretación de reglas.
+  - KNN: k contra accuracy con validación cruzada de 5 folds y gráfico de vecinos con PCA, en los 8 casos.
+  - Matriz de confusión y reporte por clase del caso 8 de ambos modelos.
+  - El notebook completo corre de principio a fin sin errores en un kernel reiniciado (secciones 0 a 6) y da las mismas cifras de la sección 6 que registró el bloque 3.
+- **Herramientas:** solo las de las diapositivas y notebooks de `documentos/archivos-curso/`: `DecisionTreeClassifier`, `plot_tree`, `feature_importances_` (`5_01`), `KNeighborsClassifier` (`5_02`), `StratifiedKFold` y `cross_val_score` (`5_03`, `5_04`), `PCA` (`6-03`, `7-04`) y `kneighbors` (`6-04`). No se importa ninguna librería nueva.
 - **Decisiones:**
+  - **Árboles:** `max_depth` de 1 a 15, elegido con el **accuracy de validación** (notebook `5_01` y diapositiva 5-02); en empate, la menor profundidad. Se registra siempre el árbol con **Gini**, que es el que el enunciado pide graficar; la entropía solo se compara. No se usa `ccp_alpha` (el enunciado pide `max_depth` y/o `ccp_alpha`).
+    - Profundidades elegidas: 3 en los casos 1, 3, 5 y 7; 5 en los casos 2 y 6; 6 en los casos 4 y 8.
+  - **KNN:** k impares de 1 a 51, elegido con el **accuracy promedio de la validación cruzada de 5 folds** sobre el entrenamiento, como dicen el enunciado y la diapositiva 5-03; en empate, el menor. Distancia euclidiana y voto uniforme (`5_02`). La validación cruzada usa el caso tal como viene (no se reescala por fold).
+    - k elegidos: 51, 1, 49, 1, 37, 1, 47 y 11 en los casos 1 a 8.
+  - **Gráfico de vecinos:** PCA ajustado con el entrenamiento de cada caso, solo para dibujar; los vecinos de los 3 registros de demostración los calcula el modelo registrado con `kneighbors` en las 65 columnas.
+  - Sin `class_weight`, igual que el bloque 3.
 - **Nombres globales nuevos:**
-- **Tiempo de ejecución:**
+  - Variables: `PROFUNDIDADES_ARBOL`, `CRITERIOS_ARBOL`, `CURVAS_ARBOL`, `MODELOS_ARBOL`, `importancias`, `top3`, `VALORES_K`, `FOLDS_KNN`, `CURVAS_KNN`, `MODELOS_KNN`, `VOTOS_KNN`, `TABLA_BLOQUE2`, `PROMEDIOS_BLOQUE2`.
+  - Funciones: `curva_profundidad`, `mejor_profundidad`, `graficar_profundidad`, `comparar_criterios`, `graficar_importancias`, `graficar_arbol`, `curva_k`, `mejor_k`, `graficar_curvas_k`, `resumen_eleccion_k`, `graficar_vecinos`, `resumen_bloque2`.
+  - Se importan `DecisionTreeClassifier`, `plot_tree`, `KNeighborsClassifier`, `StratifiedKFold`, `cross_val_score` y `PCA`.
+- **Tiempo de ejecución:** ~1 min (árboles ~15 s con los gráficos; KNN ~45 s, casi todo en la validación cruzada). El notebook completo (secciones 0 a 6) tarda ~14 min en una máquina de 2 núcleos sin GPU.
 - **Hallazgos:**
-- **Dudas o cambios solicitados:**
+  - **F1 macro de prueba:**
+    - Árboles: 0.5306–0.5863 (mejor en los casos 4 y 8). Los casos k y k+4 dan métricas idénticas.
+    - KNN: 0.4291–0.5253 (mejor en el caso 2).
+    - Caso 8: árbol 0.5863, KNN 0.4889 (SVM 0.5944 y red 0.5873, del bloque 3).
+  - **El árbol supera a KNN en los 8 casos.**
+  - **Escalado:** no cambia nada en el árbol (0.5571 en ambos grupos) y **empeora a KNN** (0.5135 sin escalar frente a 0.4489 con escalado). Sin escalar, la distancia la dominan los puntajes, que son las variables más predictivas; con StandardScaler pesan más las 55 dummies, que el árbol considera casi irrelevantes.
+    - **Importante para la sección 7:** en la gráfica de F1 por normalización, KNN es el único algoritmo con efecto negativo del escalado.
+  - **Balanceo:** sube el F1 medio del árbol de 0.5338 a 0.5804 y el de KNN de 0.4688 a 0.4936.
+  - **Outliers:** sin efecto en ninguno de los dos (diferencias ≤ 0.003).
+  - **La validación cruzada de KNN es engañosa en dos situaciones.**
+    - Con SMOTENC (casos 2, 4 y 6) elige k = 1 (accuracy CV 0.817–0.828, frente a 0.521–0.591 en validación), porque los registros sintéticos tienen a su "origen" en otro fold.
+    - En los casos desbalanceados (1, 3, 5 y 7) elige k = 37–51, porque los folds tienen 70 % de Nivel 3.
+    - Con el k elegido, el F1 de validación queda entre 0.013 y 0.065 por debajo del mejor k posible. Se dejó el criterio del enunciado y se documentó como ejemplo de "por qué el accuracy engaña".
+  - **Importancia de características:** `PUNT_C_NATURALES` concentra entre 0.749 y 0.840 de la importancia del árbol, seguida por `PUNT_LECTURA_CRITICA`. La raíz del árbol del caso 1 es ciencias ≤ 45.5, y Nivel 4 solo se predice con ciencias > 69.5.
+  - El registro de demostración de Nivel 4 se predice como Nivel 3 con los dos modelos en los 8 casos, igual que con SVM y la red.
+- **Dudas o cambios solicitados (para el bloque 1):**
+  - **Versiones de las librerías:** la celda `%pip` no fija versiones. Al ejecutar con scikit-learn 1.9.1 e imbalanced-learn 0.14.2, los valores escalados de los registros de demostración del caso 8 difieren desde el cuarto decimal de los guardados antes (por ejemplo, −1.191927 frente a −1.192134), aunque los conteos de registros, clases y outliers son idénticos y las métricas de la sección 6 no cambian. Conviene fijar versiones para que la ejecución del profesor dé las mismas cifras.
+  - **Filas duplicadas:** el CSV tiene 16 filas exactamente duplicadas (`df_raw.duplicated().sum()`), y el notebook no lo menciona. Conviene decidir si se eliminan o justificar que se conservan.
 
 #### Bloque 3 – SVM y redes neuronales
 - **Estado:** sección 6 terminada.
