@@ -456,12 +456,35 @@ Si encuentran una inconsistencia, corríjanla en su sección o avísenle al resp
 - **Dudas o cambios solicitados:**
 
 #### Bloque 4 – K-Means y DBSCAN
-- **Estado:** _sin iniciar_
+- **Estado:** sección 8 terminada.
+  - K-Means y DBSCAN entrenados y registrados en los **8 casos** con `registrar_clustering`; `tabla_figura3()` completa (el silhouette de DBSCAN con la regla queda en NaN; ver hallazgos).
+  - Codo y silhouette (K de 2 a 10), tamaños de los clusters, efecto del escalado y de los outliers.
+  - k-distancia, DBSCAN con la regla, sensibilidad a ε y prueba complementaria.
+  - 3 datos de prueba por técnica y caso, las 2 gráficas de silhouette (8 barras cada una), comparación K-Means vs. DBSCAN, PCA 2D (centroides y ruido en gris) y validación externa contra `y_ext`.
+  - El notebook completo corre de principio a fin sin errores en un kernel reiniciado (secciones 0 a 8).
+- **Herramientas:** solo las de las diapositivas 6-02 y 6-03 y los notebooks `6-03` y `6-04`: `KMeans`, `DBSCAN`, `NearestNeighbors`, `silhouette_score` y `PCA` (solo para graficar). La validación externa usa `pd.crosstab` con el formato de la matriz de confusión (diapositiva 6-01). No se usan t-SNE ni ARI, porque no aparecen en el material.
 - **Decisiones:**
+  - **Datos:** `obtener_datos_no_supervisado(k)`; se agrupa solo el entrenamiento de cada caso. La etiqueta se usa únicamente en 8.7.
+  - **K-Means:** `init="k-means++"`, `n_init=10` (valor del notebook `6-03`), `random_state=SEMILLA`. K de 2 a 10, elegido con el **silhouette máximo**: K = 2 en los 8 casos. El codo (leído con el punto más alejado de la recta entre extremos) marca K = 4 sin escalar y K = 5 con escalado, pero ahí el silhouette baja a 0.26–0.34 y 0.09–0.14.
+  - Los clusters de K-Means se **renumeran**: C0 = menor puntaje medio en las otras 4 áreas, C1 = mayor. No cambia inercia ni silhouette.
+  - **DBSCAN (Figura 3):** MinPts = 2 × 65 = **130** (regla del enunciado y de la diapositiva 6-03) y ε en el codo de la k-distancia con k = MinPts (ε entre 3.65 y 16.55). Resultado: **1 cluster en los 8 casos** (0.1–3.3 % de ruido), silhouette NaN. La segunda regla de la diapositiva (MinPts = 66) da lo mismo.
+  - **DBSCAN, prueba complementaria** (acordada con el equipo para que la gráfica de DBSCAN tenga valores): el ε más cercano al codo que separa ≥ 2 clusters, bajando ε en pasos de 2 % hasta el 40 % del codo; si con MinPts = 130 no aparecen, se baja a 66 y luego a 10 (la diapositiva 6-03 permite reducir MinPts con mucho ruido). Se reporta aparte, no reemplaza la regla.
+  - **3 datos de prueba:** `INDICES_DEMO`. K-Means con `predict`; DBSCAN asignando al cluster del *core sample* más cercano si está a ≤ ε, o ruido. No se usa el método del notebook `6-04` (reentrenar con el punto nuevo) porque cambia el modelo.
 - **Nombres globales nuevos:**
-- **Tiempo de ejecución:**
+  - Variables: `DATOS_NS`, `COLUMNAS_NUMERICAS_NS`, `RANGO_K`, `N_INIT_KMEANS`, `CURVAS_KMEANS`, `K_CODO`, `K_SILHOUETTE`, `K_OPTIMO`, `ELECCION_K`, `PUNTAJES_NS`, `MODELOS_KMEANS`, `MAPA_KMEANS`, `ETIQUETAS_KMEANS`, `TAMANOS_KMEANS`, `N_CARACTERISTICAS`, `MINPTS_REGLA`, `MINPTS_REGLA_2`, `KDIST`, `EPS_CODO`, `MODELOS_DBSCAN`, `filas_reglas`, `REGLAS_DBSCAN`, `FRACCIONES_EPS`, `SENSIBILIDAD_DBSCAN`, `ESCALERA_MINPTS`, `PASO_EPS`, `FRACCION_MINIMA`, `DBSCAN_COMPLEMENTARIO`, `TABLA_DBSCAN_COMPLEMENTARIO`, `DEMO_CLUSTERING`, `FIGURA3`, `PERFILES_KMEANS`, `PROMEDIOS_BLOQUE4`.
+  - Funciones: `tabla_figura2`, `participacion_varianza`, `curva_kmeans`, `indice_codo`, `graficar_curvas_kmeans`, `orden_clusters_kmeans`, `predecir_kmeans`, `nombre_cluster`, `tamanos_clusters`, `mascara_outliers_ns`, `efecto_factor_kmeans`, `outliers_por_cluster`, `coincidencia_escalado`, `k_distancias`, `eps_codo`, `graficar_kdistancia`, `resumen_dbscan`, `sensibilidad_eps`, `dbscan_complementario`, `mascara_sinteticos`, `sinteticos_por_cluster`, `predecir_dbscan`, `demo_clustering`, `graficar_silhouette_figura3`, `graficar_pca_clusters`, `graficar_validacion_externa`, `perfil_clusters`, `resumen_bloque4`.
+  - Se importan `KMeans`, `DBSCAN`, `NearestNeighbors` y `PCA`.
+- **Tiempo de ejecución:** ~1.5 min (K-Means de 2 a 10 ~35 s; prueba complementaria de DBSCAN ~30 s; el resto, segundos).
 - **Hallazgos:**
-- **Dudas o cambios solicitados:**
+  - **K-Means separa desempeño bajo y alto:** C0 con puntajes medios de 45–49 en lectura crítica, estrato 1.7–2.0 y 17.1–18.0 años; C1 con 64–67, estrato 2.4–2.6 y 16.5–16.9 años. C0 casi no tiene Nivel 4 (0.0–0.4 %) y C1 casi no tiene Nivel 1 (0.1–0.4 %), pero los niveles intermedios se mezclan (Nivel 3 es el 60–62 % de C0 en los desbalanceados).
+  - **Silhouette de K-Means:** 0.41–0.56 sin escalar y 0.17–0.25 con escalado. Por factor: ED 0.4864 → 0.2085; outliers 0.3513 → 0.3436; balanceo 0.2970 → 0.3980.
+  - **El escalado baja el silhouette pero no cambia los grupos** (89.5–94.7 % de registros en el mismo cluster entre k y k+4). Sin escalar, las 5 numéricas aportan el 97.1 % de la varianza.
+  - **Outliers:** sin efecto (≤ 0.019 de silhouette); se reparten 4.0–6.0 % en cada cluster.
+  - **DBSCAN no encuentra estructura de densidad:** la k-distancia sube de forma continua. Al bajar ε, el ruido crece antes de que aparezca un segundo cluster (caso 5: 15 % → 90 % entre el 80 % y el 70 % del codo).
+  - **Prueba complementaria:** silhouette 0.025–0.474, con 7–84 % de ruido; en los casos 3 y 5 el segundo cluster tiene solo 6–7 registros. En los casos balanceados, los clusters densos son 76–85 % registros sintéticos de SMOTENC (frente al 46–48 % del caso): densidad artificial.
+  - **3 datos de prueba:** K-Means pone el registro de Nivel 1 en C0 y los de Nivel 3 y Nivel 4 en C1 en los 8 casos.
+  - **Para la sección 7 y el documento:** la conclusión del módulo no supervisado es que el desempeño es un continuo; los modelos supervisados confunden niveles vecinos por la misma razón.
+- **Dudas o cambios solicitados:** ninguno para otros bloques. `mascara_sinteticos` supone que SMOTENC deja los registros reales al inicio y los sintéticos al final (comportamiento de `imbalanced-learn`); si el bloque 1 cambia el balanceo, hay que revisarla.
 
 ---
 
